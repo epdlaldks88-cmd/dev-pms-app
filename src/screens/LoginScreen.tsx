@@ -28,10 +28,11 @@ export default function LoginScreen({ navigation }: any) {
       await login(email, password);
       navigation.replace("Home");
     } catch (error: any) {
-      Alert.alert(
-        "로그인 실패",
-        error.response?.data?.message || "다시 시도해주세요",
-      );
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        JSON.stringify(error);
+      Alert.alert("로그인 실패", message);
     } finally {
       setLoading(false);
     }
