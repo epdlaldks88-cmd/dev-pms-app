@@ -50,16 +50,18 @@ export default function LoginScreen({ navigation }: any) {
         <Text style={styles.title}>PMS</Text>
         <Text style={styles.subtitle}>프로젝트 관리 시스템</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: "#000000" }]}
           placeholder="이메일"
+          placeholderTextColor="#94a3b8"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: "#000000" }]}
           placeholder="비밀번호"
+          placeholderTextColor="#94a3b8"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
