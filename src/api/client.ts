@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://10.15.229.209:3000/api";
+const API_URL = "https://dev-pms-backend-production.up.railway.app/api";
 
 export const apiClient = axios.create({
   baseURL: API_URL,
