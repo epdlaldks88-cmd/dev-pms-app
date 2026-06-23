@@ -7,6 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { getMeetings } from "../api/meetings";
 
@@ -88,9 +89,14 @@ export default function MeetingsScreen({ navigation }: any) {
       </View>
 
       {meetings.length === 0 ? (
-        <View style={styles.center}>
+        <ScrollView
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
           <Text style={styles.emptyText}>회의가 없습니다</Text>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={meetings}
@@ -295,5 +301,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: "#94a3b8",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 400,
   },
 });

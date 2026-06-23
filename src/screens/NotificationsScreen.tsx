@@ -7,6 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import {
   getNotifications,
@@ -116,9 +117,14 @@ export default function NotificationsScreen() {
       </View>
 
       {notifications.length === 0 ? (
-        <View style={styles.center}>
+        <ScrollView
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
           <Text style={styles.emptyText}>알림이 없습니다</Text>
-        </View>
+        </ScrollView>
       ) : (
         <FlatList
           data={notifications}
@@ -226,5 +232,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: "#94a3b8",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: 400,
   },
 });

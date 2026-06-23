@@ -17,6 +17,7 @@ import {
   getComments,
   createComment,
 } from "../api/tasks";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Task {
   id: string;
@@ -53,6 +54,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const fetchTask = async () => {
     try {
@@ -155,7 +157,8 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View style={styles.container}>
         {/* 헤더 */}
@@ -303,7 +306,9 @@ export default function TaskDetailScreen({ route, navigation }: any) {
         </ScrollView>
 
         {/* 댓글 입력 */}
-        <View style={styles.commentInput}>
+        <View
+          style={[styles.commentInput, { paddingBottom: insets.bottom + 12 }]}
+        >
           <TextInput
             style={[styles.input, { color: "#000000" }]}
             placeholder="댓글 입력..."
@@ -340,7 +345,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    paddingTop: 56,
+    paddingTop: 56, // 다시 고정값으로
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
