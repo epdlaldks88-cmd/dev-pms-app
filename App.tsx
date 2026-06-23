@@ -7,7 +7,9 @@ import LoginScreen from "./src/screens/LoginScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import ProjectsScreen from "./src/screens/ProjectsScreen";
 import TasksScreen from "./src/screens/TasksScreen";
+import TaskDetailScreen from "./src/screens/TaskDetailScreen";
 import MeetingsScreen from "./src/screens/MeetingsScreen";
+import MeetingDetailScreen from "./src/screens/MeetingDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
@@ -79,6 +81,8 @@ export default function App() {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="MainTab" component={TabNavigator} />
+        <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
+        <Stack.Screen name="MeetingDetail" component={MeetingDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

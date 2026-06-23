@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import { useNavigation } from "@react-navigation/native";
 import { registerDeviceToken } from "../api/deviceToken";
 
 Notifications.setNotificationHandler({
@@ -14,6 +15,7 @@ Notifications.setNotificationHandler({
 });
 
 export const usePushNotification = () => {
+  const navigation = useNavigation<any>();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
@@ -38,7 +40,6 @@ export const usePushNotification = () => {
     }
 
     const token = await Notifications.getDevicePushTokenAsync();
-    console.log("FCM 토큰:", token.data);
     await registerDeviceToken(token.data);
   };
 
@@ -54,6 +55,19 @@ export const usePushNotification = () => {
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;
         console.log("알림 탭:", data);
+
+        // 알림 타입에 따라 화면 이동
+        if (data?.type === "TASK_ASSIGNED" || data?.type === "TASK_UPDATED") {
+          const link = data?.link as string;
+          if (link) {
+            const taskId = link.split("/").pop();
+            if (taskId) navigation.navigate("TaskDetail", { taskId });
+          }
+        } else if (data?.type === "MEETING_CREATED") {
+          navigation.navigate("MainTab", { screen: "Meetings" });
+        } else {
+          navigation.navigate("MainTab", { screen: "Notifications" });
+        }
       });
 
     return () => {

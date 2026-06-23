@@ -20,7 +20,7 @@ interface Task {
   project: { name: string; color: string };
 }
 
-export default function TasksScreen() {
+export default function TasksScreen({ navigation }: any) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -116,7 +116,12 @@ export default function TasksScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.item}>
+            <TouchableOpacity
+              style={styles.item}
+              onPress={() =>
+                navigation.navigate("TaskDetail", { taskId: item.id })
+              }
+            >
               <View style={styles.itemTop}>
                 <View style={styles.projectTag}>
                   <View

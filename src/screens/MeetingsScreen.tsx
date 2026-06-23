@@ -22,7 +22,7 @@ interface Meeting {
   participants: any[];
 }
 
-export default function MeetingsScreen() {
+export default function MeetingsScreen({ navigation }: any) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,6 +102,9 @@ export default function MeetingsScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.item, isPast(item.meetingDate) && styles.pastItem]}
+              onPress={() =>
+                navigation.navigate("MeetingDetail", { meetingId: item.id })
+              }
             >
               <View style={styles.dateBox}>
                 <Text style={styles.dateDay}>
