@@ -8,7 +8,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const handleLogout = async () => {
     await logout();
-    navigation.replace("Login");
+    navigation.replace("MainTab");
   };
 
   return (

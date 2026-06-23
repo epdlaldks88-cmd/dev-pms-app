@@ -1,10 +1,74 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import LoginScreen from "./src/screens/LoginScreen";
-import HomeScreen from "./src/screens/HomeScreen";
+import NotificationsScreen from "./src/screens/NotificationsScreen";
+import ProjectsScreen from "./src/screens/ProjectsScreen";
+import TasksScreen from "./src/screens/TasksScreen";
+import MeetingsScreen from "./src/screens/MeetingsScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function TabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: "#6366f1",
+        tabBarInactiveTintColor: "#94a3b8",
+        tabBarStyle: {
+          backgroundColor: "#fff",
+          borderTopColor: "#e2e8f0",
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: any;
+          if (route.name === "Notifications") {
+            iconName = focused ? "notifications" : "notifications-outline";
+          } else if (route.name === "Projects") {
+            iconName = focused ? "folder" : "folder-outline";
+          } else if (route.name === "Tasks") {
+            iconName = focused ? "checkbox" : "checkbox-outline";
+          } else if (route.name === "Meetings") {
+            iconName = focused ? "calendar" : "calendar-outline";
+          } else if (route.name === "Profile") {
+            iconName = focused ? "person" : "person-outline";
+          }
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen
+        name="Projects"
+        component={ProjectsScreen}
+        options={{ tabBarLabel: "프로젝트" }}
+      />
+      <Tab.Screen
+        name="Tasks"
+        component={TasksScreen}
+        options={{ tabBarLabel: "태스크" }}
+      />
+      <Tab.Screen
+        name="Meetings"
+        component={MeetingsScreen}
+        options={{ tabBarLabel: "회의" }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ tabBarLabel: "알림" }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarLabel: "마이페이지" }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 export default function App() {
   return (
@@ -14,7 +78,7 @@ export default function App() {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="MainTab" component={TabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

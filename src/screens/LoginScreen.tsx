@@ -26,7 +26,7 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
     try {
       await login(email, password);
-      navigation.replace("Home");
+      navigation.replace("MainTab");
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
