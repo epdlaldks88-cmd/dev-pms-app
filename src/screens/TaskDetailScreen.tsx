@@ -25,6 +25,8 @@ interface Task {
   project: { name: string; color: string };
   assignees: { user: { id: string; name: string } }[];
   comments: any[];
+  subTasks?: { id: string; title: string; status: string }[];
+  _count?: { subTasks: number };
 }
 
 interface Comment {
@@ -328,6 +330,58 @@ export default function TaskDetailScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* 서브태스크 */}
+          {task.subTasks && task.subTasks.length > 0 && (
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                서브태스크 ({task.subTasks.length})
+              </Text>
+              {task.subTasks.map((sub) => (
+                <TouchableOpacity
+                  key={sub.id}
+                  style={[styles.subTask, { borderColor: colors.border }]}
+                  onPress={() =>
+                    navigation.push("TaskDetail", { taskId: sub.id })
+                  }
+                >
+                  <View
+                    style={[
+                      styles.subTaskDot,
+                      {
+                        backgroundColor:
+                          sub.status === "DONE" ? "#22c55e" : colors.border,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.subTaskTitle,
+                      {
+                        color:
+                          sub.status === "DONE"
+                            ? colors.textMuted
+                            : colors.text,
+                      },
+                      sub.status === "DONE" && {
+                        textDecorationLine: "line-through",
+                      },
+                    ]}
+                  >
+                    {sub.title}
+                  </Text>
+                  <Text style={[styles.subTaskStatus, { color: primary }]}>
+                    ›
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           <View
             style={[
               styles.section,
@@ -518,4 +572,18 @@ const styles = StyleSheet.create({
   },
   sendButton: { borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   sendButtonText: { color: "#fff", fontWeight: "bold" },
+  subTask: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  subTaskDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  subTaskTitle: { flex: 1, fontSize: 14 },
+  subTaskStatus: { fontSize: 18 },
 });
