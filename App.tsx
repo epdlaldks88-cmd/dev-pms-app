@@ -20,6 +20,9 @@ import RoomChatScreen from "./src/screens/RoomChatScreen";
 import SplashScreen from "./src/screens/SplashScreen";
 import { useBadge } from "./src/hooks/useBadge";
 import ProjectDetailScreen from "./src/screens/ProjectDetailScreen";
+import SearchScreen from "./src/screens/SearchScreen";
+import HomeScreen from "./src/screens/HomeScreen";
+import ChatScreen from "./src/screens/ChatScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -30,7 +33,7 @@ function TabNavigator() {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: primary,
         tabBarInactiveTintColor: colors.textMuted,
@@ -38,55 +41,37 @@ function TabNavigator() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: any;
-          if (route.name === "Notifications") {
-            iconName = focused ? "notifications" : "notifications-outline";
-          } else if (route.name === "Projects") {
-            iconName = focused ? "folder" : "folder-outline";
-          } else if (route.name === "Tasks") {
-            iconName = focused ? "checkbox" : "checkbox-outline";
-          } else if (route.name === "Meetings") {
-            iconName = focused ? "calendar" : "calendar-outline";
-          } else if (route.name === "Messages") {
-            iconName = focused ? "chatbubble" : "chatbubble-outline";
-          } else if (route.name === "Rooms") {
-            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
-          } else if (route.name === "Profile") {
-            iconName = focused ? "person" : "person-outline";
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+      }}
     >
       <Tab.Screen
-        name="Projects"
-        component={ProjectsScreen}
-        options={{ tabBarLabel: "프로젝트" }}
-      />
-      <Tab.Screen
-        name="Tasks"
-        component={TasksScreen}
-        options={{ tabBarLabel: "태스크" }}
-      />
-      <Tab.Screen
-        name="Meetings"
-        component={MeetingsScreen}
-        options={{ tabBarLabel: "회의" }}
-      />
-      <Tab.Screen
-        name="Messages"
-        component={MessagesScreen}
+        name="Home"
+        component={HomeScreen}
         options={{
-          tabBarLabel: "쪽지",
-          tabBarBadge: messageCount > 0 ? messageCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: primary },
+          tabBarLabel: "홈",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tab.Screen
-        name="Rooms"
-        component={RoomsScreen}
-        options={{ tabBarLabel: "채팅" }}
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          tabBarLabel: "메시지",
+          tabBarBadge: messageCount > 0 ? messageCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: primary },
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "chatbubbles" : "chatbubbles-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
       />
       <Tab.Screen
         name="Notifications"
@@ -95,12 +80,28 @@ function TabNavigator() {
           tabBarLabel: "알림",
           tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
           tabBarBadgeStyle: { backgroundColor: primary },
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "notifications" : "notifications-outline"}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarLabel: "마이페이지" }}
+        options={{
+          tabBarLabel: "마이페이지",
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
@@ -122,6 +123,7 @@ function AppNavigator() {
         <Stack.Screen name="NewMessage" component={NewMessageScreen} />
         <Stack.Screen name="RoomChat" component={RoomChatScreen} />
         <Stack.Screen name="ProjectDetail" component={ProjectDetailScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

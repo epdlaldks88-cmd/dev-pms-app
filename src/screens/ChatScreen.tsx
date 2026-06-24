@@ -1,18 +1,16 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import ProjectsScreen from "./ProjectsScreen";
-import TasksScreen from "./TasksScreen";
-import MeetingsScreen from "./MeetingsScreen";
+import MessagesScreen from "./MessagesScreen";
+import RoomsScreen from "./RoomsScreen";
 import { useTheme } from "../theme/ThemeContext";
 
 const TABS = [
-  { key: "projects", label: "프로젝트" },
-  { key: "tasks", label: "태스크" },
-  { key: "meetings", label: "회의" },
+  { key: "messages", label: "쪽지" },
+  { key: "rooms", label: "채팅방" },
 ];
 
-export default function HomeScreen({ navigation }: any) {
-  const [activeTab, setActiveTab] = useState("projects");
+export default function ChatScreen({ navigation }: any) {
+  const [activeTab, setActiveTab] = useState("messages");
   const { primary, colors } = useTheme();
 
   return (
@@ -24,10 +22,7 @@ export default function HomeScreen({ navigation }: any) {
           { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>PMS</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Search")}>
-          <Text style={[styles.searchIcon, { color: primary }]}>🔍</Text>
-        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>메시지</Text>
       </View>
 
       {/* 탭 */}
@@ -63,9 +58,8 @@ export default function HomeScreen({ navigation }: any) {
 
       {/* 콘텐츠 */}
       <View style={{ flex: 1 }}>
-        {activeTab === "projects" && <ProjectsScreen navigation={navigation} />}
-        {activeTab === "tasks" && <TasksScreen navigation={navigation} />}
-        {activeTab === "meetings" && <MeetingsScreen navigation={navigation} />}
+        {activeTab === "messages" && <MessagesScreen navigation={navigation} />}
+        {activeTab === "rooms" && <RoomsScreen navigation={navigation} />}
       </View>
     </View>
   );
@@ -74,15 +68,11 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     padding: 16,
     paddingTop: 56,
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 22, fontWeight: "bold" },
-  searchIcon: { fontSize: 20 },
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: 1,
