@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import MessagesScreen from "./MessagesScreen";
 import RoomsScreen from "./RoomsScreen";
 import { useTheme } from "../theme/ThemeContext";
+import { useBadge } from "../hooks/useBadge";
 
 const TABS = [
   { key: "messages", label: "쪽지" },
@@ -12,10 +13,10 @@ const TABS = [
 export default function ChatScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState("messages");
   const { primary, colors } = useTheme();
+  const { messageCount } = useBadge();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* 상단 헤더 */}
       <View
         style={[
           styles.header,
@@ -25,7 +26,6 @@ export default function ChatScreen({ navigation }: any) {
         <Text style={[styles.headerTitle, { color: colors.text }]}>메시지</Text>
       </View>
 
-      {/* 탭 */}
       <View
         style={[
           styles.tabRow,
@@ -44,19 +44,25 @@ export default function ChatScreen({ navigation }: any) {
             ]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text
-              style={[
-                styles.tabText,
-                { color: activeTab === tab.key ? primary : colors.textMuted },
-              ]}
-            >
-              {tab.label}
-            </Text>
+            <View style={styles.tabContent}>
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: activeTab === tab.key ? primary : colors.textMuted },
+                ]}
+              >
+                {tab.label}
+              </Text>
+              {tab.key === "messages" && messageCount > 0 && (
+                <View style={[styles.badge, { backgroundColor: primary }]}>
+                  <Text style={styles.badgeText}>{messageCount}</Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* 콘텐츠 */}
       <View style={{ flex: 1 }}>
         {activeTab === "messages" && <MessagesScreen navigation={navigation} />}
         {activeTab === "rooms" && <RoomsScreen navigation={navigation} />}
@@ -78,5 +84,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
+  tabContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   tabText: { fontSize: 14, fontWeight: "600" },
+  badge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
 });

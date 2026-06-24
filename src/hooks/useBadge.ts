@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getUnreadCount } from "../api/notifications";
 import { getUnreadCount as getMessageUnreadCount } from "../api/messages";
+import { getMyRooms } from "../api/rooms";
 import { usePolling } from "./usePolling";
 
 export const useBadge = () => {
@@ -24,7 +25,7 @@ export const useBadge = () => {
     fetchCounts();
   }, []);
 
-  usePolling(fetchCounts, 10000); // 10초마다 갱신
+  usePolling(fetchCounts, 10000);
 
   return { notificationCount, messageCount };
 };
