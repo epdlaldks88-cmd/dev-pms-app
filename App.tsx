@@ -26,6 +26,7 @@ import ChatScreen from "./src/screens/ChatScreen";
 import NoticesScreen from "./src/screens/NoticesScreen";
 import NoticeDetailScreen from "./src/screens/NoticeDetailScreen";
 import QAScreen from "./src/screens/QAScreen";
+import OfflineBanner from "./src/components/OfflineBanner";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -113,6 +114,7 @@ function TabNavigator() {
 function AppNavigator() {
   return (
     <NavigationContainer>
+      <OfflineBanner />
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{ headerShown: false }}
