@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getThread, sendMessage } from "../api/messages";
 import { useTheme } from "../theme/ThemeContext";
 import { usePolling } from "../hooks/usePolling";
+import { Keyboard } from "react-native";
 
 interface Message {
   id: string;
@@ -64,6 +65,7 @@ export default function MessageThreadScreen({ route, navigation }: any) {
   const handleSend = async () => {
     if (!message.trim()) return;
     setSubmitting(true);
+    Keyboard.dismiss();
     try {
       await sendMessage(userId, message.trim());
       setMessage("");
@@ -82,6 +84,24 @@ export default function MessageThreadScreen({ route, navigation }: any) {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const formatDateLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return "오늘";
+    if (date.toDateString() === yesterday.toDateString()) return "어제";
+    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+  };
+
+  const shouldShowDate = (index: number) => {
+    if (index === 0) return true;
+    const current = new Date(messages[index].createdAt);
+    const prev = new Date(messages[index - 1].createdAt);
+    return current.toDateString() !== prev.toDateString();
   };
 
   if (loading) {
@@ -128,47 +148,76 @@ export default function MessageThreadScreen({ route, navigation }: any) {
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: false })
           }
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
             const isMine = item.senderId === myId;
             return (
-              <View
-                style={[styles.messageRow, isMine && styles.messageRowMine]}
-              >
-                {!isMine && (
-                  <View style={[styles.avatar, { backgroundColor: primary }]}>
-                    <Text style={styles.avatarText}>
-                      {item.sender.name.charAt(0)}
+              <View>
+                {shouldShowDate(index) && (
+                  <View style={styles.dateDivider}>
+                    <View
+                      style={[
+                        styles.dateLine,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.dateText,
+                        {
+                          color: colors.textMuted,
+                          backgroundColor: colors.background,
+                        },
+                      ]}
+                    >
+                      {formatDateLabel(item.createdAt)}
                     </Text>
+                    <View
+                      style={[
+                        styles.dateLine,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
                   </View>
                 )}
                 <View
-                  style={[
-                    styles.bubble,
-                    isMine
-                      ? { backgroundColor: primary }
-                      : {
-                          backgroundColor: colors.surface,
-                          borderColor: colors.border,
-                          borderWidth: 1,
-                        },
-                  ]}
+                  style={[styles.messageRow, isMine && styles.messageRowMine]}
                 >
-                  <Text
+                  {!isMine && (
+                    <View style={[styles.avatar, { backgroundColor: primary }]}>
+                      <Text style={styles.avatarText}>
+                        {item.sender.name.charAt(0)}
+                      </Text>
+                    </View>
+                  )}
+                  <View
                     style={[
-                      styles.bubbleText,
-                      { color: isMine ? "#fff" : colors.text },
+                      styles.bubble,
+                      isMine
+                        ? { backgroundColor: primary }
+                        : {
+                            backgroundColor: colors.surface,
+                            borderColor: colors.border,
+                            borderWidth: 1,
+                          },
                     ]}
                   >
-                    {item.content}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.bubbleTime,
-                      { color: isMine ? "#ffffff80" : colors.textMuted },
-                    ]}
-                  >
-                    {formatTime(item.createdAt)}
-                  </Text>
+                    <Text
+                      style={[
+                        styles.bubbleText,
+                        { color: isMine ? "#fff" : colors.text },
+                      ]}
+                    >
+                      {item.content}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.bubbleTime,
+                        { color: isMine ? "#ffffff80" : colors.textMuted },
+                      ]}
+                    >
+                      {formatTime(item.createdAt)}
+                    </Text>
+                  </View>
                 </View>
               </View>
             );
@@ -271,4 +320,11 @@ const styles = StyleSheet.create({
   },
   sendButton: { borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   sendButtonText: { color: "#fff", fontWeight: "bold" },
+  dateDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  dateLine: { flex: 1, height: 1 },
+  dateText: { fontSize: 12, paddingHorizontal: 8 },
 });

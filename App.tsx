@@ -1,5 +1,4 @@
 import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,9 +27,15 @@ import NoticeDetailScreen from "./src/screens/NoticeDetailScreen";
 import QAScreen from "./src/screens/QAScreen";
 import OfflineBanner from "./src/components/OfflineBanner";
 import IssuesScreen from "./src/screens/IssuesScreen";
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from "@react-navigation/native";
+import { setNavigationRef } from "./src/api/client";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationContainerRef = createNavigationContainerRef();
 
 function TabNavigator() {
   const { primary, colors } = useTheme();
@@ -114,7 +119,10 @@ function TabNavigator() {
 
 function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationContainerRef}
+      onReady={() => setNavigationRef(navigationContainerRef)}
+    >
       <OfflineBanner />
       <Stack.Navigator
         initialRouteName="Splash"

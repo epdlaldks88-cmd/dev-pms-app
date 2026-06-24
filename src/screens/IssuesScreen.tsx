@@ -14,6 +14,7 @@ import { getIssues, updateIssue } from "../api/issues";
 import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Issue {
   id: string;
@@ -74,9 +75,15 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchIssues();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchIssues();
+      };
+      fetch();
+    }, []),
+  );
 
   const getRiskLabel = (risk: string) => {
     const labels: Record<string, string> = {

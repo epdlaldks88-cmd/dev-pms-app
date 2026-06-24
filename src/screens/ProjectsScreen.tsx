@@ -12,6 +12,7 @@ import {
 import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Project {
   id: string;
@@ -50,9 +51,15 @@ export default function ProjectsScreen({ navigation, showHeader = true }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchProjects();
+      };
+      fetch();
+    }, []),
+  );
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {

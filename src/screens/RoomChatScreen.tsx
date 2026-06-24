@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getRoomMessages, sendRoomMessage, leaveRoom } from "../api/rooms";
 import { useTheme } from "../theme/ThemeContext";
 import { usePolling } from "../hooks/usePolling";
+import { Keyboard } from "react-native";
 
 interface RoomMessage {
   id: string;
@@ -62,6 +63,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const handleSend = async () => {
     if (!message.trim()) return;
     setSubmitting(true);
+    Keyboard.dismiss();
     try {
       await sendRoomMessage(roomId, message.trim());
       setMessage("");
@@ -100,8 +102,14 @@ export default function RoomChatScreen({ route, navigation }: any) {
     return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDateLabel = (dateString: string) => {
     const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return "오늘";
+    if (date.toDateString() === yesterday.toDateString()) return "어제";
     return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
   };
 
@@ -183,7 +191,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
                         },
                       ]}
                     >
-                      {formatDate(item.createdAt)}
+                      {formatDateLabel(item.createdAt)}
                     </Text>
                     <View
                       style={[

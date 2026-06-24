@@ -12,6 +12,7 @@ import {
 import { getMeetings } from "../api/meetings";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Meeting {
   id: string;
@@ -51,9 +52,15 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchMeetings();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchMeetings();
+      };
+      fetch();
+    }, []),
+  );
 
   const formatDay = (dateString: string) => {
     const days = ["일", "월", "화", "수", "목", "금", "토"];

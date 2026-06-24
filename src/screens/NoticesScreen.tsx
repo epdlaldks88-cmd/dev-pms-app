@@ -13,6 +13,7 @@ import { getNotices } from "../api/notices";
 import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Notice {
   id: string;
@@ -70,9 +71,15 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchNotices();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchNotices();
+      };
+      fetch();
+    }, []),
+  );
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

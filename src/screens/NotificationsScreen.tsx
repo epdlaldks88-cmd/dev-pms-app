@@ -15,6 +15,7 @@ import {
   markAllAsRead,
 } from "../api/notifications";
 import { useTheme } from "../theme/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Notification {
   id: string;
@@ -110,9 +111,15 @@ export default function NotificationsScreen({ navigation }: any) {
     }
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchNotifications();
+      };
+      fetch();
+    }, []),
+  );
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {

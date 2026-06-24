@@ -8,7 +8,12 @@ export const apiClient = axios.create({
   timeout: 10000,
 });
 
-// 요청마다 JWT 토큰 자동 첨부
+// 네비게이션 참조 (외부에서 설정)
+let navigationRef: any = null;
+export const setNavigationRef = (ref: any) => {
+  navigationRef = ref;
+};
+
 apiClient.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem("accessToken");
   if (token) {
@@ -17,7 +22,6 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-// 401 응답 시 토큰 자동 갱신
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -36,16 +40,21 @@ apiClient.interceptors.response.use(
 
         const { accessToken } = response.data;
         await AsyncStorage.setItem("accessToken", accessToken);
-
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // 리프레시 토큰도 만료되면 로그아웃
+        // 리프레시 토큰도 만료 → 로그아웃
         await AsyncStorage.multiRemove([
           "accessToken",
           "refreshToken",
           "userId",
         ]);
+
+        // 로그인 화면으로 이동
+        if (navigationRef) {
+          navigationRef.navigate("Login");
+        }
+
         return Promise.reject(refreshError);
       }
     }

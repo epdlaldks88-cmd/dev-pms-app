@@ -14,6 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getWorklogs, acknowledgeWorklog } from "../api/worklogs";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Worklog {
   id: string;
@@ -56,9 +57,15 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchWorklogs();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchWorklogs();
+      };
+      fetch();
+    }, []),
+  );
 
   const handleAcknowledge = async (id: string) => {
     Alert.alert("확인", "이 워크로그를 확인 처리하시겠습니까?", [

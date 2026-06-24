@@ -13,6 +13,7 @@ import {
 import { getQAList, acceptQA, confirmQA, rejectQA, cancelQA } from "../api/qa";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface QA {
   id: string;
@@ -52,9 +53,15 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchQA();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchQA();
+      };
+      fetch();
+    }, []),
+  );
 
   const getStatusLabel = (status: string, result?: string) => {
     if (status === "COMPLETED") {
