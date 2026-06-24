@@ -14,6 +14,7 @@ import {
   markAsRead,
   markAllAsRead,
 } from "../api/notifications";
+import { useTheme } from "../theme/ThemeContext";
 
 interface Notification {
   id: string;
@@ -29,6 +30,7 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { primary, colors } = useTheme();
 
   const fetchNotifications = async () => {
     try {
@@ -90,7 +92,6 @@ export default function NotificationsScreen() {
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-
     if (minutes < 1) return "방금 전";
     if (minutes < 60) return `${minutes}분 전`;
     if (hours < 24) return `${hours}시간 전`;
@@ -99,19 +100,26 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>알림</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.text }]}>알림</Text>
         {notifications.some((n) => !n.isRead) && (
           <TouchableOpacity onPress={handleMarkAllAsRead}>
-            <Text style={styles.markAllRead}>모두 읽음</Text>
+            <Text style={[styles.markAllRead, { color: primary }]}>
+              모두 읽음
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -123,7 +131,9 @@ export default function NotificationsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.emptyText}>알림이 없습니다</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            알림이 없습니다
+          </Text>
         </ScrollView>
       ) : (
         <FlatList
@@ -134,16 +144,36 @@ export default function NotificationsScreen() {
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.item, !item.isRead && styles.unread]}
+              style={[
+                styles.item,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                !item.isRead && {
+                  borderLeftWidth: 3,
+                  borderLeftColor: primary,
+                  backgroundColor: primary + "10",
+                },
+              ]}
               onPress={() => handleMarkAsRead(item.id)}
             >
               <View style={styles.itemHeader}>
-                <Text style={styles.typeLabel}>{getTypeLabel(item.type)}</Text>
-                <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+                <Text style={[styles.typeLabel, { color: primary }]}>
+                  {getTypeLabel(item.type)}
+                </Text>
+                <Text style={[styles.date, { color: colors.textMuted }]}>
+                  {formatDate(item.createdAt)}
+                </Text>
               </View>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.message}>{item.message}</Text>
-              {!item.isRead && <View style={styles.unreadDot} />}
+              <Text style={[styles.title, { color: colors.text }]}>
+                {item.title}
+              </Text>
+              <Text style={[styles.message, { color: colors.textSecondary }]}>
+                {item.message}
+              </Text>
+              {!item.isRead && (
+                <View
+                  style={[styles.unreadDot, { backgroundColor: primary }]}
+                />
+              )}
             </TouchableOpacity>
           )}
         />
@@ -153,73 +183,35 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
     paddingTop: 56,
-    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-  },
-  markAllRead: {
-    fontSize: 14,
-    color: "#6366f1",
-  },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
+  markAllRead: { fontSize: 14 },
   item: {
-    backgroundColor: "#fff",
     padding: 16,
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     position: "relative",
-  },
-  unread: {
-    borderLeftWidth: 3,
-    borderLeftColor: "#6366f1",
-    backgroundColor: "#f5f3ff",
   },
   itemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 4,
   },
-  typeLabel: {
-    fontSize: 12,
-    color: "#6366f1",
-    fontWeight: "600",
-  },
-  date: {
-    fontSize: 12,
-    color: "#94a3b8",
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 4,
-  },
-  message: {
-    fontSize: 14,
-    color: "#64748b",
-  },
+  typeLabel: { fontSize: 12, fontWeight: "600" },
+  date: { fontSize: 12 },
+  title: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
+  message: { fontSize: 14 },
   unreadDot: {
     position: "absolute",
     top: 16,
@@ -227,11 +219,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#6366f1",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#94a3b8",
   },
   emptyContainer: {
     flex: 1,
@@ -239,4 +226,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 400,
   },
+  emptyText: { fontSize: 16 },
 });

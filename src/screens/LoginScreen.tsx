@@ -12,11 +12,13 @@ import {
   ScrollView,
 } from "react-native";
 import { login } from "../api/auth";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const { primary, colors } = useTheme();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -44,30 +46,49 @@ export default function LoginScreen({ navigation }: any) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          { backgroundColor: colors.background },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>PMS</Text>
-        <Text style={styles.subtitle}>프로젝트 관리 시스템</Text>
+        <Text style={[styles.title, { color: primary }]}>PMS</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          프로젝트 관리 시스템
+        </Text>
         <TextInput
-          style={[styles.input, { color: "#000000" }]}
+          style={[
+            styles.input,
+            {
+              color: "#000000",
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            },
+          ]}
           placeholder="이메일"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={colors.textMuted}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
         />
         <TextInput
-          style={[styles.input, { color: "#000000" }]}
+          style={[
+            styles.input,
+            {
+              color: "#000000",
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+            },
+          ]}
           placeholder="비밀번호"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={colors.textMuted}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, { backgroundColor: primary }]}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -87,32 +108,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#f8fafc",
   },
   title: {
     fontSize: 36,
     fontWeight: "bold",
-    color: "#6366f1",
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#64748b",
     textAlign: "center",
     marginBottom: 40,
   },
   input: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     borderRadius: 8,
     padding: 14,
     marginBottom: 12,
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#6366f1",
     borderRadius: 8,
     padding: 16,
     alignItems: "center",

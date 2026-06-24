@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { getMyTasks } from "../api/tasks";
+import { useTheme } from "../theme/ThemeContext";
 
 interface Task {
   id: string;
@@ -25,6 +26,7 @@ export default function TasksScreen({ navigation }: any) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { primary, colors } = useTheme();
 
   const fetchTasks = async () => {
     try {
@@ -58,13 +60,13 @@ export default function TasksScreen({ navigation }: any) {
   };
 
   const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
+    const c: Record<string, string> = {
       URGENT: "#ef4444",
       HIGH: "#f97316",
-      MEDIUM: "#6366f1",
+      MEDIUM: primary,
       LOW: "#94a3b8",
     };
-    return colors[priority] || "#94a3b8";
+    return c[priority] || "#94a3b8";
   };
 
   const getStatusLabel = (status: string) => {
@@ -91,17 +93,26 @@ export default function TasksScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>내 태스크</Text>
-        <Text style={styles.headerCount}>{tasks.length}개</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          내 태스크
+        </Text>
+        <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+          {tasks.length}개
+        </Text>
       </View>
 
       {tasks.length === 0 ? (
@@ -111,7 +122,9 @@ export default function TasksScreen({ navigation }: any) {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={styles.emptyText}>배정된 태스크가 없습니다</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            배정된 태스크가 없습니다
+          </Text>
         </ScrollView>
       ) : (
         <FlatList
@@ -123,7 +136,10 @@ export default function TasksScreen({ navigation }: any) {
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.item}
+              style={[
+                styles.item,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
               onPress={() =>
                 navigation.navigate("TaskDetail", { taskId: item.id })
               }
@@ -133,10 +149,15 @@ export default function TasksScreen({ navigation }: any) {
                   <View
                     style={[
                       styles.projectDot,
-                      { backgroundColor: item.project?.color || "#6366f1" },
+                      { backgroundColor: item.project?.color || primary },
                     ]}
                   />
-                  <Text style={styles.projectName}>
+                  <Text
+                    style={[
+                      styles.projectName,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {item.project?.name || "프로젝트 없음"}
                   </Text>
                 </View>
@@ -156,21 +177,30 @@ export default function TasksScreen({ navigation }: any) {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.taskTitle}>{item.title}</Text>
+              <Text style={[styles.taskTitle, { color: colors.text }]}>
+                {item.title}
+              </Text>
               {item.description && (
-                <Text style={styles.description} numberOfLines={1}>
+                <Text
+                  style={[styles.description, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
                   {item.description}
                 </Text>
               )}
               <View style={styles.itemBottom}>
-                <Text style={styles.statusText}>
+                <Text style={[styles.statusText, { color: primary }]}>
                   {getStatusLabel(item.status)}
                 </Text>
                 {item.dueDate && (
                   <Text
                     style={[
                       styles.dueDate,
-                      isOverdue(item.dueDate) && styles.overdue,
+                      {
+                        color: isOverdue(item.dueDate)
+                          ? "#ef4444"
+                          : colors.textMuted,
+                      },
                     ]}
                   >
                     마감 {formatDate(item.dueDate)}
@@ -186,111 +216,46 @@ export default function TasksScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
     paddingTop: 56,
-    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-  },
-  headerCount: {
-    fontSize: 14,
-    color: "#94a3b8",
-  },
-  list: {
-    padding: 16,
-  },
-  item: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
+  headerCount: { fontSize: 14 },
+  list: { padding: 16 },
+  item: { borderRadius: 8, padding: 16, marginBottom: 8, borderWidth: 1 },
   itemTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
-  projectTag: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  projectDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  projectName: {
-    fontSize: 12,
-    color: "#64748b",
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  priorityText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  taskTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 4,
-  },
-  description: {
-    fontSize: 13,
-    color: "#64748b",
-    marginBottom: 8,
-  },
+  projectTag: { flexDirection: "row", alignItems: "center" },
+  projectDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  projectName: { fontSize: 12 },
+  priorityBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  priorityText: { fontSize: 11, fontWeight: "600" },
+  taskTitle: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
+  description: { fontSize: 13, marginBottom: 8 },
   itemBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 8,
   },
-  statusText: {
-    fontSize: 12,
-    color: "#6366f1",
-    fontWeight: "600",
-  },
-  dueDate: {
-    fontSize: 12,
-    color: "#94a3b8",
-  },
-  overdue: {
-    color: "#ef4444",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#94a3b8",
-  },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  dueDate: { fontSize: 12 },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     minHeight: 400,
   },
+  emptyText: { fontSize: 16 },
 });

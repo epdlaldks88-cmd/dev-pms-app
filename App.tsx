@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { ThemeProvider, useTheme } from "./src/theme/ThemeContext";
 import LoginScreen from "./src/screens/LoginScreen";
 import NotificationsScreen from "./src/screens/NotificationsScreen";
 import ProjectsScreen from "./src/screens/ProjectsScreen";
@@ -16,15 +17,17 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
+  const { primary, isDark, colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: "#6366f1",
-        tabBarInactiveTintColor: "#94a3b8",
+        tabBarActiveTintColor: primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopColor: "#e2e8f0",
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
@@ -72,7 +75,7 @@ function TabNavigator() {
   );
 }
 
-export default function App() {
+function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -85,5 +88,13 @@ export default function App() {
         <Stack.Screen name="MeetingDetail" component={MeetingDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
   );
 }

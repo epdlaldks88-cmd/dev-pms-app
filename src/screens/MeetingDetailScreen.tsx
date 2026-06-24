@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { getMeetingDetail } from "../api/meetings";
+import { useTheme } from "../theme/ThemeContext";
 
 interface Meeting {
   id: string;
@@ -17,7 +18,6 @@ interface Meeting {
   startTime?: string;
   endTime?: string;
   location?: string;
-  attendees?: string;
   project?: { name: string; color: string };
   participants: { user: { id: string; name: string } }[];
   createdBy: { name: string };
@@ -27,6 +27,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   const { meetingId } = route.params;
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
+  const { primary, colors } = useTheme();
 
   const fetchMeeting = async () => {
     try {
@@ -51,91 +52,142 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }
 
   if (!meeting) {
     return (
-      <View style={styles.center}>
-        <Text>회의를 찾을 수 없습니다</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>회의를 찾을 수 없습니다</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: 16,
+          paddingTop: 56,
+          backgroundColor: colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← 뒤로</Text>
+          <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+        <Text
+          style={[styles.headerTitle, { color: colors.text }]}
+          numberOfLines={1}
+        >
           회의 상세
         </Text>
         <View style={{ width: 60 }} />
       </View>
 
       <ScrollView style={styles.content}>
-        {/* 기본 정보 */}
-        <View style={styles.section}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
           {meeting.project && (
             <View style={styles.projectTag}>
               <View
                 style={[
                   styles.projectDot,
-                  { backgroundColor: meeting.project.color || "#6366f1" },
+                  { backgroundColor: meeting.project.color || primary },
                 ]}
               />
-              <Text style={styles.projectName}>{meeting.project.name}</Text>
+              <Text
+                style={[styles.projectName, { color: colors.textSecondary }]}
+              >
+                {meeting.project.name}
+              </Text>
             </View>
           )}
-          <Text style={styles.meetingTitle}>{meeting.title}</Text>
-          <Text style={styles.date}>📅 {formatDate(meeting.meetingDate)}</Text>
+          <Text style={[styles.meetingTitle, { color: colors.text }]}>
+            {meeting.title}
+          </Text>
+          <Text style={[styles.date, { color: colors.textSecondary }]}>
+            📅 {formatDate(meeting.meetingDate)}
+          </Text>
           {meeting.startTime && (
-            <Text style={styles.time}>
+            <Text style={[styles.time, { color: colors.textSecondary }]}>
               🕐 {meeting.startTime}
               {meeting.endTime ? ` ~ ${meeting.endTime}` : ""}
             </Text>
           )}
           {meeting.location && (
-            <Text style={styles.location}>📍 {meeting.location}</Text>
+            <Text style={[styles.location, { color: colors.textSecondary }]}>
+              📍 {meeting.location}
+            </Text>
           )}
         </View>
 
-        {/* 참석자 */}
         {meeting.participants?.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
               참석자 ({meeting.participants.length}명)
             </Text>
             <View style={styles.participantsRow}>
               {meeting.participants.map((p) => (
                 <View key={p.user.id} style={styles.participant}>
-                  <View style={styles.avatar}>
+                  <View style={[styles.avatar, { backgroundColor: primary }]}>
                     <Text style={styles.avatarText}>
                       {p.user.name.charAt(0)}
                     </Text>
                   </View>
-                  <Text style={styles.participantName}>{p.user.name}</Text>
+                  <Text
+                    style={[
+                      styles.participantName,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {p.user.name}
+                  </Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* 회의 내용 */}
         {meeting.content && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>회의 내용</Text>
-            <Text style={styles.content2}>{meeting.content}</Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              회의 내용
+            </Text>
+            <Text style={[styles.content2, { color: colors.textSecondary }]}>
+              {meeting.content}
+            </Text>
           </View>
         )}
 
-        {/* 작성자 */}
-        <View style={styles.section}>
-          <Text style={styles.createdBy}>
+        <View
+          style={[
+            styles.section,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.createdBy, { color: colors.textMuted }]}>
             작성자: {meeting.createdBy?.name}
           </Text>
         </View>
@@ -147,66 +199,37 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    paddingTop: 56,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
-  },
-  backButton: { fontSize: 16, color: "#6366f1", width: 60 },
+  backButton: { fontSize: 16, width: 60 },
   headerTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#1e293b",
     flex: 1,
     textAlign: "center",
   },
   content: { flex: 1 },
-  section: {
-    backgroundColor: "#fff",
-    padding: 16,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderTopWidth: 1,
-    borderColor: "#e2e8f0",
-  },
+  section: { padding: 16, marginBottom: 8, borderWidth: 1 },
   projectTag: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   projectDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  projectName: { fontSize: 12, color: "#64748b" },
-  meetingTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 12,
-  },
-  date: { fontSize: 14, color: "#374151", marginBottom: 6 },
-  time: { fontSize: 14, color: "#374151", marginBottom: 6 },
-  location: { fontSize: 14, color: "#374151" },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 12,
-  },
+  projectName: { fontSize: 12 },
+  meetingTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 12 },
+  date: { fontSize: 14, marginBottom: 6 },
+  time: { fontSize: 14, marginBottom: 6 },
+  location: { fontSize: 14 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 12 },
   participantsRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   participant: { alignItems: "center" },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 4,
   },
   avatarText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  participantName: { fontSize: 12, color: "#374151" },
-  content2: { fontSize: 14, color: "#374151", lineHeight: 22 },
-  createdBy: { fontSize: 13, color: "#94a3b8" },
+  participantName: { fontSize: 12 },
+  content2: { fontSize: 14, lineHeight: 22 },
+  createdBy: { fontSize: 13 },
 });

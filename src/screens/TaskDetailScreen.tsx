@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,13 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import {
-  getTaskDetail,
-  updateTaskStatus,
-  getComments,
-  createComment,
-} from "../api/tasks";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getTaskDetail, updateTaskStatus, createComment } from "../api/tasks";
+import { useTheme } from "../theme/ThemeContext";
 
 interface Task {
   id: string;
@@ -55,25 +51,17 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [submitting, setSubmitting] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const insets = useSafeAreaInsets();
+  const { primary, colors } = useTheme();
 
   const fetchTask = async () => {
     try {
       const data = await getTaskDetail(taskId);
       setTask(data);
-      setComments(data.comments || []); // 태스크 상세에서 댓글 가져오기
+      setComments(data.comments || []);
     } catch (error) {
       console.log("태스크 조회 실패:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    try {
-      const data = await getComments(taskId);
-      setComments(data);
-    } catch (error) {
-      console.log("댓글 조회 실패:", error);
     }
   };
 
@@ -85,7 +73,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     try {
       await updateTaskStatus(taskId, status);
       setShowStatusPicker(false);
-      await fetchTask(); // 상태 변경 후 재조회
+      await fetchTask();
     } catch (error) {
       Alert.alert("오류", "상태 변경에 실패했습니다");
     }
@@ -97,7 +85,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     try {
       await createComment(taskId, comment.trim());
       setComment("");
-      await fetchTask(); // 댓글 포함 전체 재조회
+      await fetchTask();
     } catch (error) {
       Alert.alert("오류", "댓글 작성에 실패했습니다");
     } finally {
@@ -106,13 +94,13 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   };
 
   const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
+    const c: Record<string, string> = {
       URGENT: "#ef4444",
       HIGH: "#f97316",
-      MEDIUM: "#6366f1",
+      MEDIUM: primary,
       LOW: "#94a3b8",
     };
-    return colors[priority] || "#94a3b8";
+    return c[priority] || "#94a3b8";
   };
 
   const getPriorityLabel = (priority: string) => {
@@ -125,11 +113,8 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     return labels[priority] || priority;
   };
 
-  const getCurrentStatus = () => {
-    return (
-      STATUS_OPTIONS.find((s) => s.value === task?.status) || STATUS_OPTIONS[0]
-    );
-  };
+  const getCurrentStatus = () =>
+    STATUS_OPTIONS.find((s) => s.value === task?.status) || STATUS_OPTIONS[0];
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -138,16 +123,16 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }
 
   if (!task) {
     return (
-      <View style={styles.center}>
-        <Text>태스크를 찾을 수 없습니다</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>태스크를 찾을 수 없습니다</Text>
       </View>
     );
   }
@@ -160,41 +145,74 @@ export default function TaskDetailScreen({ route, navigation }: any) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
-      <View style={styles.container}>
-        {/* 헤더 */}
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: 16,
+            paddingTop: 56,
+            backgroundColor: colors.surface,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backButton}>← 뒤로</Text>
+            <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text
+            style={[styles.headerTitle, { color: colors.text }]}
+            numberOfLines={1}
+          >
             태스크 상세
           </Text>
           <View style={{ width: 60 }} />
         </View>
 
         <ScrollView style={styles.content}>
-          {/* 태스크 기본 정보 */}
-          <View style={styles.section}>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.projectTag}>
               <View
                 style={[
                   styles.projectDot,
-                  { backgroundColor: task.project?.color || "#6366f1" },
+                  { backgroundColor: task.project?.color || primary },
                 ]}
               />
-              <Text style={styles.projectName}>{task.project?.name}</Text>
+              <Text
+                style={[styles.projectName, { color: colors.textSecondary }]}
+              >
+                {task.project?.name}
+              </Text>
             </View>
-            <Text style={styles.taskTitle}>{task.title}</Text>
+            <Text style={[styles.taskTitle, { color: colors.text }]}>
+              {task.title}
+            </Text>
             {task.description && (
-              <Text style={styles.description}>{task.description}</Text>
+              <Text
+                style={[styles.description, { color: colors.textSecondary }]}
+              >
+                {task.description}
+              </Text>
             )}
           </View>
 
-          {/* 상태 & 우선순위 */}
-          <View style={styles.section}>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
             <View style={styles.row}>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>우선순위</Text>
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                  우선순위
+                </Text>
                 <View
                   style={[
                     styles.badge,
@@ -212,7 +230,9 @@ export default function TaskDetailScreen({ route, navigation }: any) {
                 </View>
               </View>
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>상태</Text>
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                  상태
+                </Text>
                 <TouchableOpacity
                   style={[
                     styles.badge,
@@ -229,15 +249,24 @@ export default function TaskDetailScreen({ route, navigation }: any) {
               </View>
             </View>
 
-            {/* 상태 선택 */}
             {showStatusPicker && (
-              <View style={styles.statusPicker}>
+              <View
+                style={[
+                  styles.statusPicker,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
                 {STATUS_OPTIONS.map((option) => (
                   <TouchableOpacity
                     key={option.value}
                     style={[
                       styles.statusOption,
-                      task.status === option.value && styles.statusOptionActive,
+                      task.status === option.value && {
+                        backgroundColor: primary + "10",
+                      },
                     ]}
                     onPress={() => handleStatusChange(option.value)}
                   >
@@ -247,7 +276,11 @@ export default function TaskDetailScreen({ route, navigation }: any) {
                         { backgroundColor: option.color },
                       ]}
                     />
-                    <Text style={styles.statusOptionText}>{option.label}</Text>
+                    <Text
+                      style={[styles.statusOptionText, { color: colors.text }]}
+                    >
+                      {option.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -255,49 +288,92 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
             {task.dueDate && (
               <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>마감일</Text>
-                <Text style={styles.infoValue}>{formatDate(task.dueDate)}</Text>
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                  마감일
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>
+                  {formatDate(task.dueDate)}
+                </Text>
               </View>
             )}
           </View>
 
-          {/* 담당자 */}
           {task.assignees?.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>담당자</Text>
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                담당자
+              </Text>
               {task.assignees.map((a) => (
                 <View key={a.user.id} style={styles.assignee}>
-                  <View style={styles.assigneeAvatar}>
+                  <View
+                    style={[
+                      styles.assigneeAvatar,
+                      { backgroundColor: primary },
+                    ]}
+                  >
                     <Text style={styles.assigneeAvatarText}>
                       {a.user.name.charAt(0)}
                     </Text>
                   </View>
-                  <Text style={styles.assigneeName}>{a.user.name}</Text>
+                  <Text style={[styles.assigneeName, { color: colors.text }]}>
+                    {a.user.name}
+                  </Text>
                 </View>
               ))}
             </View>
           )}
 
-          {/* 댓글 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>댓글 {comments.length}개</Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              댓글 {comments.length}개
+            </Text>
             {comments.length === 0 ? (
-              <Text style={styles.emptyText}>댓글이 없습니다</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                댓글이 없습니다
+              </Text>
             ) : (
               comments.map((c) => (
                 <View key={c.id} style={styles.comment}>
                   <View style={styles.commentHeader}>
-                    <View style={styles.commentAvatar}>
+                    <View
+                      style={[
+                        styles.commentAvatar,
+                        { backgroundColor: primary },
+                      ]}
+                    >
                       <Text style={styles.commentAvatarText}>
                         {c.author?.name?.charAt(0)}
                       </Text>
                     </View>
-                    <Text style={styles.commentAuthor}>{c.author?.name}</Text>
-                    <Text style={styles.commentDate}>
+                    <Text
+                      style={[styles.commentAuthor, { color: colors.text }]}
+                    >
+                      {c.author?.name}
+                    </Text>
+                    <Text
+                      style={[styles.commentDate, { color: colors.textMuted }]}
+                    >
                       {formatDate(c.createdAt)}
                     </Text>
                   </View>
-                  <Text style={styles.commentContent}>{c.content}</Text>
+                  <Text
+                    style={[
+                      styles.commentContent,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {c.content}
+                  </Text>
                 </View>
               ))
             )}
@@ -305,22 +381,36 @@ export default function TaskDetailScreen({ route, navigation }: any) {
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* 댓글 입력 */}
         <View
-          style={[styles.commentInput, { paddingBottom: insets.bottom + 12 }]}
+          style={[
+            styles.commentInput,
+            {
+              backgroundColor: colors.surface,
+              borderTopColor: colors.border,
+              paddingBottom: insets.bottom + 12,
+            },
+          ]}
         >
           <TextInput
-            style={[styles.input, { color: "#000000" }]}
+            style={[
+              styles.input,
+              {
+                color: colors.text,
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+              },
+            ]}
             placeholder="댓글 입력..."
+            placeholderTextColor={colors.textMuted}
             value={comment}
             onChangeText={setComment}
             multiline
-            placeholderTextColor="#94a3b8"
           />
           <TouchableOpacity
             style={[
               styles.sendButton,
-              !comment.trim() && styles.sendButtonDisabled,
+              { backgroundColor: primary },
+              !comment.trim() && { backgroundColor: primary + "60" },
             ]}
             onPress={handleAddComment}
             disabled={submitting || !comment.trim()}
@@ -338,49 +428,32 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    paddingTop: 56, // 다시 고정값으로
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
-  },
-  backButton: { fontSize: 16, color: "#6366f1", width: 60 },
+  backButton: { fontSize: 16, width: 60 },
   headerTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#1e293b",
     flex: 1,
     textAlign: "center",
   },
   content: { flex: 1 },
   section: {
-    backgroundColor: "#fff",
     padding: 16,
     marginBottom: 8,
     borderBottomWidth: 1,
     borderTopWidth: 1,
-    borderColor: "#e2e8f0",
+    borderWidth: 1,
   },
   projectTag: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   projectDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  projectName: { fontSize: 12, color: "#64748b" },
-  taskTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 8,
-  },
-  description: { fontSize: 14, color: "#64748b", lineHeight: 20 },
+  projectName: { fontSize: 12 },
+  taskTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 8 },
+  description: { fontSize: 14, lineHeight: 20 },
   row: { flexDirection: "row", gap: 16, marginBottom: 8 },
   infoItem: { marginBottom: 8 },
-  infoLabel: { fontSize: 12, color: "#94a3b8", marginBottom: 4 },
-  infoValue: { fontSize: 14, color: "#1e293b" },
+  infoLabel: { fontSize: 12, marginBottom: 4 },
+  infoValue: { fontSize: 14 },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -389,35 +462,26 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 13, fontWeight: "600" },
   statusPicker: {
-    backgroundColor: "#f8fafc",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     marginTop: 8,
     overflow: "hidden",
   },
   statusOption: { flexDirection: "row", alignItems: "center", padding: 12 },
-  statusOptionActive: { backgroundColor: "#6366f110" },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  statusOptionText: { fontSize: 14, color: "#1e293b" },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 12,
-  },
+  statusOptionText: { fontSize: 14 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 12 },
   assignee: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   assigneeAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   assigneeAvatarText: { color: "#fff", fontWeight: "bold" },
-  assigneeName: { fontSize: 14, color: "#1e293b" },
+  assigneeName: { fontSize: 14 },
   comment: { marginBottom: 16 },
   commentHeader: {
     flexDirection: "row",
@@ -428,51 +492,30 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   commentAvatarText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
-  commentAuthor: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginRight: 8,
-  },
-  commentDate: { fontSize: 12, color: "#94a3b8" },
-  commentContent: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20,
-    paddingLeft: 36,
-  },
-  emptyText: { fontSize: 14, color: "#94a3b8" },
+  commentAuthor: { fontSize: 13, fontWeight: "600", marginRight: 8 },
+  commentDate: { fontSize: 12 },
+  commentContent: { fontSize: 14, lineHeight: 20, paddingLeft: 36 },
+  emptyText: { fontSize: 14 },
   commentInput: {
     flexDirection: "row",
     padding: 12,
-    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
     alignItems: "flex-end",
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     borderRadius: 8,
     padding: 10,
     fontSize: 14,
     maxHeight: 100,
     marginRight: 8,
-    backgroundColor: "#f8fafc",
   },
-  sendButton: {
-    backgroundColor: "#6366f1",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  sendButtonDisabled: { backgroundColor: "#c7d2fe" },
+  sendButton: { borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   sendButtonText: { color: "#fff", fontWeight: "bold" },
 });

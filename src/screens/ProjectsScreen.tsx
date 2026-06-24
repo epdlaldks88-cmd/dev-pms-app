@@ -7,8 +7,10 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { getProjects } from "../api/projects";
+import { useTheme } from "../theme/ThemeContext";
 
 interface Project {
   id: string;
@@ -25,6 +27,7 @@ export default function ProjectsScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { primary, colors } = useTheme();
 
   const fetchProjects = async () => {
     try {
@@ -69,22 +72,36 @@ export default function ProjectsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>프로젝트</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          프로젝트
+        </Text>
       </View>
 
       {projects.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>프로젝트가 없습니다</Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.emptyContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            프로젝트가 없습니다
+          </Text>
+        </ScrollView>
       ) : (
         <FlatList
           data={projects}
@@ -94,19 +111,34 @@ export default function ProjectsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.item}>
+            <TouchableOpacity
+              style={[
+                styles.item,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
               <View style={styles.itemLeft}>
                 <View
                   style={[styles.colorDot, { backgroundColor: item.color }]}
                 />
                 <View style={styles.itemContent}>
-                  <Text style={styles.projectName}>{item.name}</Text>
+                  <Text style={[styles.projectName, { color: colors.text }]}>
+                    {item.name}
+                  </Text>
                   {item.description && (
-                    <Text style={styles.description} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.description,
+                        { color: colors.textSecondary },
+                      ]}
+                      numberOfLines={1}
+                    >
                       {item.description}
                     </Text>
                   )}
-                  <Text style={styles.memberCount}>
+                  <Text
+                    style={[styles.memberCount, { color: colors.textMuted }]}
+                  >
                     멤버 {item.members?.length || 0}명
                   </Text>
                 </View>
@@ -135,81 +167,37 @@ export default function ProjectsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     padding: 16,
     paddingTop: 56,
-    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1e293b",
-  },
-  list: {
-    padding: 16,
-  },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
+  list: { padding: 16 },
   item: {
-    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  itemLeft: {
-    flexDirection: "row",
+  itemLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
+  colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 12 },
+  itemContent: { flex: 1 },
+  projectName: { fontSize: 16, fontWeight: "600", marginBottom: 2 },
+  description: { fontSize: 13, marginBottom: 4 },
+  memberCount: { fontSize: 12 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    flex: 1,
+    minHeight: 400,
   },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  projectName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1e293b",
-    marginBottom: 2,
-  },
-  description: {
-    fontSize: 13,
-    color: "#64748b",
-    marginBottom: 4,
-  },
-  memberCount: {
-    fontSize: 12,
-    color: "#94a3b8",
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#94a3b8",
-  },
+  emptyText: { fontSize: 16 },
 });
