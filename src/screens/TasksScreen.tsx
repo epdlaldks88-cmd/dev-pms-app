@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { getMyTasks } from "../api/tasks";
 import { useTheme } from "../theme/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Task {
   id: string;
@@ -45,9 +46,15 @@ export default function TasksScreen({ navigation }: any) {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetch = async () => {
+        setLoading(true);
+        await fetchTasks();
+      };
+      fetch();
+    }, []),
+  );
 
   const getPriorityLabel = (priority: string) => {
     const labels: Record<string, string> = {

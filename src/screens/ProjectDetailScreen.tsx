@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { getProjectDetail, getProjectTasks } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 interface Project {
   id: string;
@@ -39,23 +40,26 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
   const [activeTab, setActiveTab] = useState<"tasks" | "members">("tasks");
   const { primary, colors } = useTheme();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [projectData, tasksData] = await Promise.all([
-          getProjectDetail(projectId),
-          getProjectTasks(projectId),
-        ]);
-        setProject(projectData);
-        setTasks(tasksData);
-      } catch (error) {
-        console.log("프로젝트 조회 실패:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const [projectData, tasksData] = await Promise.all([
+            getProjectDetail(projectId),
+            getProjectTasks(projectId),
+          ]);
+          setProject(projectData);
+          setTasks(tasksData);
+        } catch (error) {
+          console.log("프로젝트 조회 실패:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
+    }, [projectId]),
+  );
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
