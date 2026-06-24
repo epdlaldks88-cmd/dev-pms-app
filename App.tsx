@@ -17,12 +17,16 @@ import MessageThreadScreen from "./src/screens/MessageThreadScreen";
 import NewMessageScreen from "./src/screens/NewMessageScreen";
 import RoomsScreen from "./src/screens/RoomsScreen";
 import RoomChatScreen from "./src/screens/RoomChatScreen";
+import SplashScreen from "./src/screens/SplashScreen";
+import { useBadge } from "./src/hooks/useBadge";
+import ProjectDetailScreen from "./src/screens/ProjectDetailScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
   const { primary, colors } = useTheme();
+  const { notificationCount, messageCount } = useBadge();
 
   return (
     <Tab.Navigator
@@ -73,7 +77,11 @@ function TabNavigator() {
       <Tab.Screen
         name="Messages"
         component={MessagesScreen}
-        options={{ tabBarLabel: "쪽지" }}
+        options={{
+          tabBarLabel: "쪽지",
+          tabBarBadge: messageCount > 0 ? messageCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: primary },
+        }}
       />
       <Tab.Screen
         name="Rooms"
@@ -83,7 +91,11 @@ function TabNavigator() {
       <Tab.Screen
         name="Notifications"
         component={NotificationsScreen}
-        options={{ tabBarLabel: "알림" }}
+        options={{
+          tabBarLabel: "알림",
+          tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: primary },
+        }}
       />
       <Tab.Screen
         name="Profile"
@@ -98,9 +110,10 @@ function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="Splash"
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="MainTab" component={TabNavigator} />
         <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
@@ -108,6 +121,7 @@ function AppNavigator() {
         <Stack.Screen name="MessageThread" component={MessageThreadScreen} />
         <Stack.Screen name="NewMessage" component={NewMessageScreen} />
         <Stack.Screen name="RoomChat" component={RoomChatScreen} />
+        <Stack.Screen name="ProjectDetail" component={ProjectDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

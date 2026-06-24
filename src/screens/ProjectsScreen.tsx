@@ -23,7 +23,7 @@ interface Project {
   members: any[];
 }
 
-export default function ProjectsScreen() {
+export default function ProjectsScreen({ navigation }: any) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -116,6 +116,9 @@ export default function ProjectsScreen() {
                 styles.item,
                 { backgroundColor: colors.surface, borderColor: colors.border },
               ]}
+              onPress={() =>
+                navigation.navigate("ProjectDetail", { projectId: item.id })
+              }
             >
               <View style={styles.itemLeft}>
                 <View
