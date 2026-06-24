@@ -7,3 +7,8 @@ export const getMyProfile = async () => {
   const response = await apiClient.get(`/users/${userId}`);
   return response.data;
 };
+
+export const getAllUsers = async () => {
+  const response = await apiClient.get("/users");
+  return response.data;
+};

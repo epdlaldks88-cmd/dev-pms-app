@@ -12,12 +12,17 @@ import TaskDetailScreen from "./src/screens/TaskDetailScreen";
 import MeetingsScreen from "./src/screens/MeetingsScreen";
 import MeetingDetailScreen from "./src/screens/MeetingDetailScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import MessagesScreen from "./src/screens/MessagesScreen";
+import MessageThreadScreen from "./src/screens/MessageThreadScreen";
+import NewMessageScreen from "./src/screens/NewMessageScreen";
+import RoomsScreen from "./src/screens/RoomsScreen";
+import RoomChatScreen from "./src/screens/RoomChatScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function TabNavigator() {
-  const { primary, isDark, colors } = useTheme();
+  const { primary, colors } = useTheme();
 
   return (
     <Tab.Navigator
@@ -39,6 +44,10 @@ function TabNavigator() {
             iconName = focused ? "checkbox" : "checkbox-outline";
           } else if (route.name === "Meetings") {
             iconName = focused ? "calendar" : "calendar-outline";
+          } else if (route.name === "Messages") {
+            iconName = focused ? "chatbubble" : "chatbubble-outline";
+          } else if (route.name === "Rooms") {
+            iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
           }
@@ -60,6 +69,16 @@ function TabNavigator() {
         name="Meetings"
         component={MeetingsScreen}
         options={{ tabBarLabel: "회의" }}
+      />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{ tabBarLabel: "쪽지" }}
+      />
+      <Tab.Screen
+        name="Rooms"
+        component={RoomsScreen}
+        options={{ tabBarLabel: "채팅" }}
       />
       <Tab.Screen
         name="Notifications"
@@ -86,6 +105,9 @@ function AppNavigator() {
         <Stack.Screen name="MainTab" component={TabNavigator} />
         <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
         <Stack.Screen name="MeetingDetail" component={MeetingDetailScreen} />
+        <Stack.Screen name="MessageThread" component={MessageThreadScreen} />
+        <Stack.Screen name="NewMessage" component={NewMessageScreen} />
+        <Stack.Screen name="RoomChat" component={RoomChatScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
