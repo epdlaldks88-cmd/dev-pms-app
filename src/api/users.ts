@@ -12,3 +12,13 @@ export const getAllUsers = async () => {
   const response = await apiClient.get("/users");
   return response.data;
 };
+
+export const updateProfile = async (data: {
+  name?: string;
+  position?: string;
+  department?: string;
+  phone?: string;
+}) => {
+  const response = await apiClient.patch("/users/profile", data);
+  return response.data;
+};
