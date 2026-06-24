@@ -19,3 +19,8 @@ export const getUnreadCount = async () => {
   const response = await apiClient.get("/notifications/unread-count");
   return response.data;
 };
+
+export const deleteAllNotifications = async () => {
+  const response = await apiClient.delete("/notifications");
+  return response.data;
+};

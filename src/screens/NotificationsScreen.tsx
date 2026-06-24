@@ -31,6 +31,7 @@ export default function NotificationsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -155,13 +156,25 @@ export default function NotificationsScreen({ navigation }: any) {
         ]}
       >
         <Text style={[styles.headerTitle, { color: colors.text }]}>알림</Text>
-        {notifications.some((n) => !n.isRead) && (
-          <TouchableOpacity onPress={handleMarkAllAsRead}>
-            <Text style={[styles.markAllRead, { color: primary }]}>
-              모두 읽음
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => setShowUnreadOnly(!showUnreadOnly)}>
+            <Text
+              style={[
+                styles.filterBtn,
+                { color: showUnreadOnly ? primary : colors.textMuted },
+              ]}
+            >
+              {showUnreadOnly ? "● 안읽음" : "○ 전체"}
             </Text>
           </TouchableOpacity>
-        )}
+          {notifications.some((n) => !n.isRead) && (
+            <TouchableOpacity onPress={handleMarkAllAsRead}>
+              <Text style={[styles.markAllRead, { color: primary }]}>
+                모두 읽음
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {notifications.length === 0 ? (
@@ -177,7 +190,11 @@ export default function NotificationsScreen({ navigation }: any) {
         </ScrollView>
       ) : (
         <FlatList
-          data={notifications}
+          data={
+            showUnreadOnly
+              ? notifications.filter((n) => !n.isRead)
+              : notifications
+          }
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -267,4 +284,6 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   emptyText: { fontSize: 16 },
+  headerRight: { flexDirection: "row", gap: 12, alignItems: "center" },
+  filterBtn: { fontSize: 13, fontWeight: "600" },
 });

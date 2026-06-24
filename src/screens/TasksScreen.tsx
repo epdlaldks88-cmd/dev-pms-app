@@ -30,6 +30,9 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
   const [error, setError] = useState(false);
+  const [filter, setFilter] = useState<
+    "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE"
+  >("ALL");
 
   const fetchTasks = async () => {
     try {
@@ -134,6 +137,46 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
           </Text>
         </View>
       )}
+      {/* 필터 바 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[
+          styles.filterBar,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        ]}
+        contentContainerStyle={styles.filterContent}
+      >
+        {[
+          { key: "ALL", label: "전체" },
+          { key: "TODO", label: "할일" },
+          { key: "IN_PROGRESS", label: "진행중" },
+          { key: "IN_REVIEW", label: "검토중" },
+          { key: "DONE", label: "완료" },
+        ].map((f) => (
+          <TouchableOpacity
+            key={f.key}
+            style={[
+              styles.filterButton,
+              { borderColor: colors.border },
+              filter === f.key && {
+                backgroundColor: primary,
+                borderColor: primary,
+              },
+            ]}
+            onPress={() => setFilter(f.key as any)}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                { color: filter === f.key ? "#fff" : colors.textSecondary },
+              ]}
+            >
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
       {tasks.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}
@@ -147,7 +190,9 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
         </ScrollView>
       ) : (
         <FlatList
-          data={tasks}
+          data={
+            filter === "ALL" ? tasks : tasks.filter((t) => t.status === filter)
+          }
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={
@@ -277,4 +322,13 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   emptyText: { fontSize: 16 },
+  filterBar: { borderBottomWidth: 1, maxHeight: 52 },
+  filterContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterText: { fontSize: 13, fontWeight: "500" },
 });
