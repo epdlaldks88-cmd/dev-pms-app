@@ -15,10 +15,13 @@ import { useTheme } from "../theme/ThemeContext";
 
 interface QA {
   id: string;
+  qaNumber?: string;
   srNumber: string;
   title: string;
-  description?: string;
+  content?: string;
+  tester?: string;
   status: string;
+  result?: string;
   createdAt: string;
 }
 
@@ -49,23 +52,29 @@ export default function QAScreen({ navigation }: any) {
     fetchQA();
   }, []);
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string, result?: string) => {
+    if (status === "COMPLETED") {
+      if (result === "PASS") return "완료/확인";
+      if (result === "REJECTED") return "반려";
+      return "완료";
+    }
     const labels: Record<string, string> = {
       PENDING: "대기중",
-      ACCEPTED: "수락됨",
-      CONFIRMED: "확인됨",
-      REJECTED: "거절됨",
-      CANCELLED: "취소됨",
+      IN_PROGRESS: "진행중",
+      CANCELLED: "취소",
     };
     return labels[status] || status;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, result?: string) => {
+    if (status === "COMPLETED") {
+      if (result === "PASS") return "#22c55e";
+      if (result === "REJECTED") return "#ef4444";
+      return "#6366f1";
+    }
     const c: Record<string, string> = {
       PENDING: "#f59e0b",
-      ACCEPTED: primary,
-      CONFIRMED: "#22c55e",
-      REJECTED: "#ef4444",
+      IN_PROGRESS: primary,
       CANCELLED: "#94a3b8",
     };
     return c[status] || "#94a3b8";
@@ -145,28 +154,31 @@ export default function QAScreen({ navigation }: any) {
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: getStatusColor(item.status) + "20" },
+                    {
+                      backgroundColor:
+                        getStatusColor(item.status, item.result) + "20",
+                    },
                   ]}
                 >
                   <Text
                     style={[
                       styles.statusText,
-                      { color: getStatusColor(item.status) },
+                      { color: getStatusColor(item.status, item.result) },
                     ]}
                   >
-                    {getStatusLabel(item.status)}
+                    {getStatusLabel(item.status, item.result)}
                   </Text>
                 </View>
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
                 {item.title}
               </Text>
-              {item.description && (
+              {item.content && (
                 <Text
                   style={[styles.description, { color: colors.textSecondary }]}
                   numberOfLines={2}
                 >
-                  {item.description}
+                  {item.content}
                 </Text>
               )}
               <Text style={[styles.date, { color: colors.textMuted }]}>
@@ -185,20 +197,33 @@ export default function QAScreen({ navigation }: any) {
                   <TouchableOpacity
                     style={[
                       styles.actionButton,
-                      { backgroundColor: "#ef4444" },
-                    ]}
-                    onPress={() => handleAction(item.id, "reject")}
-                  >
-                    <Text style={styles.actionButtonText}>거절</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.actionButton,
                       { backgroundColor: "#94a3b8" },
                     ]}
                     onPress={() => handleAction(item.id, "cancel")}
                   >
                     <Text style={styles.actionButtonText}>취소</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {item.status === "IN_PROGRESS" && (
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: "#22c55e" },
+                    ]}
+                    onPress={() => handleAction(item.id, "confirm")}
+                  >
+                    <Text style={styles.actionButtonText}>결과확인</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: "#ef4444" },
+                    ]}
+                    onPress={() => handleAction(item.id, "reject")}
+                  >
+                    <Text style={styles.actionButtonText}>반려</Text>
                   </TouchableOpacity>
                 </View>
               )}

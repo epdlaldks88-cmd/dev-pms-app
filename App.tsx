@@ -27,6 +27,7 @@ import NoticesScreen from "./src/screens/NoticesScreen";
 import NoticeDetailScreen from "./src/screens/NoticeDetailScreen";
 import QAScreen from "./src/screens/QAScreen";
 import OfflineBanner from "./src/components/OfflineBanner";
+import IssuesScreen from "./src/screens/IssuesScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();

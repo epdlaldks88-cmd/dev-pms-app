@@ -6,12 +6,14 @@ import MeetingsScreen from "./MeetingsScreen";
 import { useTheme } from "../theme/ThemeContext";
 import NoticesScreen from "./NoticesScreen";
 import QAScreen from "./QAScreen";
+import IssuesScreen from "./IssuesScreen";
 
 const TABS = [
   { key: "projects", label: "프로젝트" },
   { key: "tasks", label: "태스크" },
   { key: "meetings", label: "회의" },
   { key: "notices", label: "공지" },
+  { key: "issues", label: "이슈" },
   { key: "qa", label: "QA" },
 ];
 
@@ -72,6 +74,7 @@ export default function HomeScreen({ navigation }: any) {
         {activeTab === "meetings" && <MeetingsScreen navigation={navigation} />}
         {activeTab === "notices" && <NoticesScreen navigation={navigation} />}
         {activeTab === "qa" && <QAScreen navigation={navigation} />}
+        {activeTab === "issues" && <IssuesScreen navigation={navigation} />}
       </View>
     </View>
   );
