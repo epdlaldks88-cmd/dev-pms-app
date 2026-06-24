@@ -21,6 +21,7 @@ interface Meeting {
   project?: { name: string; color: string };
   participants: { user: { id: string; name: string } }[];
   createdBy: { name: string };
+  attendees?: string;
 }
 
 export default function MeetingDetailScreen({ route, navigation }: any) {
@@ -32,6 +33,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   const fetchMeeting = async () => {
     try {
       const data = await getMeetingDetail(meetingId);
+      console.log("회의 데이터:", JSON.stringify(data).slice(0, 500));
       setMeeting(data);
     } catch (error) {
       console.log("회의 조회 실패:", error);
@@ -132,6 +134,23 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
             </Text>
           )}
         </View>
+
+        {/* 참석자 */}
+        {meeting.attendees && (
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              참석자
+            </Text>
+            <Text style={[styles.content2, { color: colors.textSecondary }]}>
+              {meeting.attendees}
+            </Text>
+          </View>
+        )}
 
         {meeting.participants?.length > 0 && (
           <View
