@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
+import ErrorView from "../components/ErrorView";
 
 interface Project {
   id: string;
@@ -28,13 +29,16 @@ export default function ProjectsScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
   const fetchProjects = async () => {
     try {
+      setError(false);
       const data = await getProjects();
       setProjects(data);
     } catch (error) {
       console.log("프로젝트 조회 실패:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -76,6 +80,10 @@ export default function ProjectsScreen({ navigation, showHeader = true }: any) {
         <ActivityIndicator size="large" color={primary} />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorView onRetry={fetchProjects} />;
   }
 
   return (

@@ -13,6 +13,7 @@ import {
 import { getIssues, updateIssue } from "../api/issues";
 import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
+import ErrorView from "../components/ErrorView";
 
 interface Issue {
   id: string;
@@ -31,9 +32,11 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
   const fetchIssues = async () => {
     try {
+      setError(false);
       const projects = await getProjects();
       const issuePromises = projects.map((project: any) =>
         getIssues(project.id)
@@ -59,6 +62,7 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
       setIssues(allIssues);
     } catch (error) {
       console.log("이슈 조회 실패:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -144,6 +148,10 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
         <ActivityIndicator size="large" color={primary} />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorView onRetry={fetchIssues} />;
   }
 
   return (

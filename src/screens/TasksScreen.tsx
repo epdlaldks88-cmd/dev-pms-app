@@ -12,6 +12,7 @@ import {
 import { getMyTasks } from "../api/tasks";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
+import ErrorView from "../components/ErrorView";
 
 interface Task {
   id: string;
@@ -28,13 +29,16 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
   const fetchTasks = async () => {
     try {
+      setError(false);
       const data = await getMyTasks();
       setTasks(data);
     } catch (error) {
       console.log("태스크 조회 실패:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -104,6 +108,10 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
         <ActivityIndicator size="large" color={primary} />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorView onRetry={fetchTasks} />;
   }
 
   return (

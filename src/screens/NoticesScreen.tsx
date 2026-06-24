@@ -12,6 +12,7 @@ import {
 import { getNotices } from "../api/notices";
 import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
+import ErrorView from "../components/ErrorView";
 
 interface Notice {
   id: string;
@@ -28,9 +29,11 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
   const fetchNotices = async () => {
     try {
+      setError(false);
       // 모든 프로젝트의 공지사항 가져오기
       const projects = await getProjects();
       const noticePromises = projects.map((project: any) =>
@@ -55,6 +58,7 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
       setNotices(allNotices);
     } catch (error) {
       console.log("공지사항 조회 실패:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -81,6 +85,10 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
         <ActivityIndicator size="large" color={primary} />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorView onRetry={fetchNotices} />;
   }
 
   return (

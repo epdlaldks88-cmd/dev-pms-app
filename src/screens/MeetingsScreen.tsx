@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { getMeetings } from "../api/meetings";
 import { useTheme } from "../theme/ThemeContext";
+import ErrorView from "../components/ErrorView";
 
 interface Meeting {
   id: string;
@@ -29,13 +30,16 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
   const fetchMeetings = async () => {
     try {
+      setError(false);
       const data = await getMeetings();
       setMeetings(data);
     } catch (error) {
       console.log("회의 조회 실패:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -74,6 +78,10 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
         <ActivityIndicator size="large" color={primary} />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorView onRetry={fetchMeetings} />;
   }
 
   return (

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { getQAList, acceptQA, confirmQA, rejectQA, cancelQA } from "../api/qa";
 import { useTheme } from "../theme/ThemeContext";
+import ErrorView from "../components/ErrorView";
 
 interface QA {
   id: string;
@@ -30,13 +31,16 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
   const fetchQA = async () => {
     try {
+      setError(false);
       const data = await getQAList();
       setQaList(data);
     } catch (error) {
       console.log("QA 조회 실패:", error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -103,6 +107,10 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
         <ActivityIndicator size="large" color={primary} />
       </View>
     );
+  }
+
+  if (error) {
+    return <ErrorView onRetry={fetchQA} />;
   }
 
   return (
