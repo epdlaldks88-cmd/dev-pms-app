@@ -14,6 +14,7 @@ import NoticesScreen from "./NoticesScreen";
 import IssuesScreen from "./IssuesScreen";
 import QAScreen from "./QAScreen";
 import { useTheme } from "../theme/ThemeContext";
+import WorklogsScreen from "./WorklogsScreen";
 
 const TABS = [
   { key: "projects", label: "프로젝트" },
@@ -22,6 +23,7 @@ const TABS = [
   { key: "notices", label: "공지" },
   { key: "issues", label: "이슈" },
   { key: "qa", label: "QA" },
+  { key: "worklogs", label: "워크로그" },
 ];
 
 export default function HomeScreen({ navigation }: any) {
@@ -128,6 +130,9 @@ export default function HomeScreen({ navigation }: any) {
         </View>
         <View key="qa" style={{ flex: 1 }}>
           <QAScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="worklogs" style={{ flex: 1 }}>
+          <WorklogsScreen navigation={navigation} showHeader={false} />
         </View>
       </PagerView>
     </View>
