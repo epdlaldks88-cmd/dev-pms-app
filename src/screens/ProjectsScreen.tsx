@@ -23,7 +23,7 @@ interface Project {
   members: any[];
 }
 
-export default function ProjectsScreen({ navigation }: any) {
+export default function ProjectsScreen({ navigation, showHeader = true }: any) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,17 +80,21 @@ export default function ProjectsScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          프로젝트
-        </Text>
-      </View>
-
+      {showHeader && (
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            프로젝트
+          </Text>
+        </View>
+      )}
       {projects.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}

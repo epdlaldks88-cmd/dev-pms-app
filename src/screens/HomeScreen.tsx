@@ -1,12 +1,19 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import PagerView from "react-native-pager-view";
 import ProjectsScreen from "./ProjectsScreen";
 import TasksScreen from "./TasksScreen";
 import MeetingsScreen from "./MeetingsScreen";
-import { useTheme } from "../theme/ThemeContext";
 import NoticesScreen from "./NoticesScreen";
-import QAScreen from "./QAScreen";
 import IssuesScreen from "./IssuesScreen";
+import QAScreen from "./QAScreen";
+import { useTheme } from "../theme/ThemeContext";
 
 const TABS = [
   { key: "projects", label: "프로젝트" },
@@ -18,12 +25,34 @@ const TABS = [
 ];
 
 export default function HomeScreen({ navigation }: any) {
-  const [activeTab, setActiveTab] = useState("projects");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const pagerRef = useRef<PagerView>(null);
+  const tabScrollRef = useRef<ScrollView>(null);
   const { primary, colors } = useTheme();
+
+  const handleTabPress = (index: number) => {
+    setActiveIndex(index);
+    pagerRef.current?.setPage(index);
+
+    // 선택된 탭이 보이도록 스크롤
+    tabScrollRef.current?.scrollTo({
+      x: index * 80 - 80,
+      animated: true,
+    });
+  };
+
+  const handlePageSelected = (e: any) => {
+    const index = e.nativeEvent.position;
+    setActiveIndex(index);
+    tabScrollRef.current?.scrollTo({
+      x: index * 80 - 80,
+      animated: true,
+    });
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* 상단 헤더 */}
+      {/* 헤더 */}
       <View
         style={[
           styles.header,
@@ -36,46 +65,71 @@ export default function HomeScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* 탭 */}
+      {/* 스크롤 탭 */}
       <View
         style={[
-          styles.tabRow,
+          styles.tabContainer,
           { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}
       >
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tab,
-              activeTab === tab.key && {
-                borderBottomColor: primary,
-                borderBottomWidth: 2,
-              },
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text
+        <ScrollView
+          ref={tabScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
+        >
+          {TABS.map((tab, index) => (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabText,
-                { color: activeTab === tab.key ? primary : colors.textMuted },
+                styles.tab,
+                activeIndex === index && {
+                  borderBottomColor: primary,
+                  borderBottomWidth: 2,
+                },
               ]}
+              onPress={() => handleTabPress(index)}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: activeIndex === index ? primary : colors.textMuted },
+                  activeIndex === index && { fontWeight: "700" },
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      {/* 콘텐츠 */}
-      <View style={{ flex: 1 }}>
-        {activeTab === "projects" && <ProjectsScreen navigation={navigation} />}
-        {activeTab === "tasks" && <TasksScreen navigation={navigation} />}
-        {activeTab === "meetings" && <MeetingsScreen navigation={navigation} />}
-        {activeTab === "notices" && <NoticesScreen navigation={navigation} />}
-        {activeTab === "qa" && <QAScreen navigation={navigation} />}
-        {activeTab === "issues" && <IssuesScreen navigation={navigation} />}
-      </View>
+      {/* 스와이프 가능한 페이지 */}
+      <PagerView
+        ref={pagerRef}
+        style={{ flex: 1 }}
+        initialPage={0}
+        onPageSelected={handlePageSelected}
+      >
+        <View key="projects" style={{ flex: 1 }}>
+          <ProjectsScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="tasks" style={{ flex: 1 }}>
+          <TasksScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="meetings" style={{ flex: 1 }}>
+          <MeetingsScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="notices" style={{ flex: 1 }}>
+          <NoticesScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="issues" style={{ flex: 1 }}>
+          <IssuesScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="qa" style={{ flex: 1 }}>
+          <QAScreen navigation={navigation} showHeader={false} />
+        </View>
+      </PagerView>
     </View>
   );
 }
@@ -92,10 +146,16 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 22, fontWeight: "bold" },
   searchIcon: { fontSize: 20 },
-  tabRow: {
-    flexDirection: "row",
+  tabContainer: {
     borderBottomWidth: 1,
   },
-  tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
-  tabText: { fontSize: 14, fontWeight: "600" },
+  tabScrollContent: {
+    paddingHorizontal: 8,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 4,
+  },
+  tabText: { fontSize: 14 },
 });

@@ -26,7 +26,7 @@ interface Issue {
   assignee?: { name: string };
 }
 
-export default function IssuesScreen({ navigation }: any) {
+export default function IssuesScreen({ navigation, showHeader = true }: any) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,20 +148,24 @@ export default function IssuesScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          이슈 관리
-        </Text>
-        <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-          {issues.length}건
-        </Text>
-      </View>
-
+      {showHeader && (
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            이슈 관리
+          </Text>
+          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+            {issues.length}건
+          </Text>
+        </View>
+      )}
       {issues.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}

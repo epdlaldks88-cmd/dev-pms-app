@@ -23,7 +23,7 @@ interface Notice {
   project: { name: string; color: string };
 }
 
-export default function NoticesScreen({ navigation }: any) {
+export default function NoticesScreen({ navigation, showHeader = true }: any) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,17 +85,21 @@ export default function NoticesScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          공지사항
-        </Text>
-      </View>
-
+      {showHeader && (
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            공지사항
+          </Text>
+        </View>
+      )}
       {notices.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}

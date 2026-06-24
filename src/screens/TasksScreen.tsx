@@ -23,7 +23,7 @@ interface Task {
   project: { name: string; color: string };
 }
 
-export default function TasksScreen({ navigation }: any) {
+export default function TasksScreen({ navigation, showHeader = true }: any) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,20 +108,24 @@ export default function TasksScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          내 태스크
-        </Text>
-        <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-          {tasks.length}개
-        </Text>
-      </View>
-
+      {showHeader && (
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            내 태스크
+          </Text>
+          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+            {tasks.length}개
+          </Text>
+        </View>
+      )}
       {tasks.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}

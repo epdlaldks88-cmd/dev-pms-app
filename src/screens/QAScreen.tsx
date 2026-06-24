@@ -25,7 +25,7 @@ interface QA {
   createdAt: string;
 }
 
-export default function QAScreen({ navigation }: any) {
+export default function QAScreen({ navigation, showHeader = true }: any) {
   const [qaList, setQaList] = useState<QA[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,20 +107,24 @@ export default function QAScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          QA 테스트
-        </Text>
-        <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-          {qaList.length}건
-        </Text>
-      </View>
-
+      {showHeader && (
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            QA 테스트
+          </Text>
+          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+            {qaList.length}건
+          </Text>
+        </View>
+      )}
       {qaList.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}
