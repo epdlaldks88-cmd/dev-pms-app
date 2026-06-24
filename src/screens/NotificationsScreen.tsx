@@ -26,7 +26,7 @@ interface Notification {
   createdAt: string;
 }
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen({ navigation }: any) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,6 +66,46 @@ export default function NotificationsScreen() {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (error) {
       console.log("전체 읽음 처리 실패:", error);
+    }
+  };
+
+  const handleNotificationPress = async (item: Notification) => {
+    await handleMarkAsRead(item.id);
+
+    if (!item.link) return;
+
+    // 메시지/멘션 → 쪽지 스레드로 이동
+    if (item.link.includes("/messages?to=")) {
+      const userId = item.link.split("to=")[1];
+      navigation.navigate("MessageThread", { userId, userName: "쪽지" });
+      return;
+    }
+
+    // 태스크 관련
+    if (item.link.includes("/tasks/")) {
+      const taskId = item.link.split("/tasks/")[1];
+      navigation.navigate("TaskDetail", { taskId });
+      return;
+    }
+
+    // 프로젝트 관련
+    if (item.link.includes("/projects/")) {
+      const projectId = item.link.split("/projects/")[1];
+      navigation.navigate("ProjectDetail", { projectId });
+      return;
+    }
+
+    // 회의 관련
+    if (item.link.includes("/meetings/")) {
+      const meetingId = item.link.split("/meetings/")[1];
+      navigation.navigate("MeetingDetail", { meetingId });
+      return;
+    }
+
+    // 워크로그/기타 → 홈으로
+    if (item.link.includes("/workload")) {
+      navigation.navigate("MainTab", { screen: "Home" });
+      return;
     }
   };
 
@@ -153,7 +193,7 @@ export default function NotificationsScreen() {
                   backgroundColor: primary + "10",
                 },
               ]}
-              onPress={() => handleMarkAsRead(item.id)}
+              onPress={() => handleNotificationPress(item)}
             >
               <View style={styles.itemHeader}>
                 <Text style={[styles.typeLabel, { color: primary }]}>
