@@ -23,6 +23,9 @@ import ProjectDetailScreen from "./src/screens/ProjectDetailScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import ChatScreen from "./src/screens/ChatScreen";
+import NoticesScreen from "./src/screens/NoticesScreen";
+import NoticeDetailScreen from "./src/screens/NoticeDetailScreen";
+import QAScreen from "./src/screens/QAScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -124,6 +127,9 @@ function AppNavigator() {
         <Stack.Screen name="RoomChat" component={RoomChatScreen} />
         <Stack.Screen name="ProjectDetail" component={ProjectDetailScreen} />
         <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="Notices" component={NoticesScreen} />
+        <Stack.Screen name="NoticeDetail" component={NoticeDetailScreen} />
+        <Stack.Screen name="QA" component={QAScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
