@@ -54,3 +54,8 @@ export const leaveRoom = async (roomId: string) => {
   const response = await apiClient.delete(`/rooms/${roomId}/members/me`);
   return response.data;
 };
+
+export const getRoomDetail = async (roomId: string) => {
+  const response = await apiClient.get(`/rooms/${roomId}/messages`);
+  return response.data.room;
+};

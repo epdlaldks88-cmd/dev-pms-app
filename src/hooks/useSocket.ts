@@ -68,11 +68,16 @@ export const useRoomSocket = (
     let socket: Socket | null = null;
 
     const connect = async () => {
-      socket = await getSocket();
-      socket.emit("joinRoom", roomId);
-      socket.on("roomMessage", (data: any) => {
-        onMessageRef.current(data);
-      });
+      try {
+        socket = await getSocket();
+        if (!socket) return;
+        socket.emit("joinRoom", roomId);
+        socket.on("roomMessage", (data: any) => {
+          onMessageRef.current(data);
+        });
+      } catch (error) {
+        console.log("소켓 연결 실패:", error);
+      }
     };
 
     connect();

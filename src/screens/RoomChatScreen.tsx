@@ -10,6 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,6 +25,7 @@ import {
   formatRelative,
 } from "../utils/date";
 import { Keyboard, KeyboardEvent } from "react-native";
+import Header from "../components/Header";
 
 interface RoomMessage {
   id: string;
@@ -42,6 +45,8 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
   const { primary, colors } = useTheme();
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
 
   useRoomSocket(
     roomId,
@@ -85,7 +90,9 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const fetchMessages = async () => {
     try {
       const data = await getRoomMessages(roomId);
+      console.log("멤버 데이터:", JSON.stringify(data.room?.members));
       setMessages(data.messages || []);
+      setMembers(data.room?.members || []);
     } catch (error) {
       console.log("메시지 조회 실패:", error);
     } finally {
@@ -152,33 +159,15 @@ export default function RoomChatScreen({ route, navigation }: any) {
       onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: 16,
-            paddingTop: 56,
-            backgroundColor: colors.surface,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-          }}
-        >
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
-          </TouchableOpacity>
-          <Text
-            style={[styles.headerTitle, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {roomName}
-          </Text>
-          <TouchableOpacity onPress={handleLeave}>
-            <Text style={[styles.leaveButton, { color: "#ef4444" }]}>
-              나가기
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Header
+          title={roomName}
+          onBack={() => navigation.goBack()}
+          rightElement={
+            <TouchableOpacity onPress={() => setShowMembers(true)}>
+              <Text style={{ color: primary, fontWeight: "600" }}>멤버</Text>
+            </TouchableOpacity>
+          }
+        />
 
         <FlatList
           ref={flatListRef}
@@ -320,6 +309,72 @@ export default function RoomChatScreen({ route, navigation }: any) {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* 멤버 목록 모달 */}
+        <Modal visible={showMembers} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View
+              style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            >
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>
+                  멤버 ({members.length}명)
+                </Text>
+                <TouchableOpacity onPress={() => setShowMembers(false)}>
+                  <Text style={{ color: primary, fontSize: 16 }}>닫기</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 300 }}>
+                {members.map((item) => (
+                  <View
+                    key={item.userId}
+                    style={[
+                      styles.memberItem,
+                      { borderBottomColor: colors.border },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.memberAvatar,
+                        { backgroundColor: primary },
+                      ]}
+                    >
+                      <Text style={styles.memberAvatarText}>
+                        {item?.user?.name?.charAt(0) || "?"}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={[styles.memberName, { color: colors.text }]}>
+                        {item?.user?.name || "알 수 없음"}
+                      </Text>
+                      {item?.user?.position && (
+                        <Text
+                          style={[
+                            styles.memberPosition,
+                            { color: colors.textMuted },
+                          ]}
+                        >
+                          {item.user.position}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+              <TouchableOpacity
+                style={[styles.leaveButton2, { borderColor: "#ef4444" }]}
+                onPress={() => {
+                  setShowMembers(false);
+                  handleLeave();
+                }}
+              >
+                <Text style={{ color: "#ef4444", fontWeight: "600" }}>
+                  채팅방 나가기
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </KeyboardAvoidingView>
   );
@@ -381,4 +436,46 @@ const styles = StyleSheet.create({
   },
   sendButton: { borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   sendButtonText: { color: "#fff", fontWeight: "bold" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "#00000080",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    maxHeight: "70%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "bold" },
+  memberItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  memberAvatarText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  memberName: { fontSize: 15, fontWeight: "600" },
+  memberPosition: { fontSize: 12, marginTop: 2 },
+  leaveButton2: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
+  },
 });
