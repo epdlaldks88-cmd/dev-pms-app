@@ -10,8 +10,6 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { getIssues, updateIssue } from "../api/issues";
-import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
@@ -25,6 +23,7 @@ import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
 import EmptyState from "../components/EmptyState";
+import { getAllIssues, updateIssue } from "../api/issues";
 
 interface Issue {
   id: string;
@@ -48,29 +47,12 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
   const fetchIssues = async () => {
     try {
       setError(false);
-      const projects = await getProjects();
-      const issuePromises = projects.map((project: any) =>
-        getIssues(project.id)
-          .then((data: any[]) =>
-            data.map((i: any) => ({
-              ...i,
-              project: {
-                id: project.id,
-                name: project.name,
-                color: project.color,
-              },
-            })),
-          )
-          .catch(() => []),
+      const data = await getAllIssues();
+      const sorted = data.sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-      const issueArrays = await Promise.all(issuePromises);
-      const allIssues = issueArrays
-        .flat()
-        .sort(
-          (a: any, b: any) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-      setIssues(allIssues);
+      setIssues(sorted);
     } catch (error) {
       console.log("이슈 조회 실패:", error);
       setError(true);

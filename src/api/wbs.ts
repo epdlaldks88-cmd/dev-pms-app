@@ -45,3 +45,8 @@ export const deleteWbsItem = async (projectId: string, id: string) => {
   const response = await apiClient.delete(`/projects/${projectId}/wbs/${id}`);
   return response.data;
 };
+
+export const getAllWbsItems = async () => {
+  const response = await apiClient.get("/wbs");
+  return response.data;
+};

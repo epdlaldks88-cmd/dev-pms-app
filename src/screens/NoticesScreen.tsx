@@ -9,8 +9,6 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native";
-import { getNotices } from "../api/notices";
-import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
@@ -24,6 +22,7 @@ import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
 import EmptyState from "../components/EmptyState";
+import { getAllNotices } from "../api/notices";
 
 interface Notice {
   id: string;
@@ -45,28 +44,16 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
   const fetchNotices = async () => {
     try {
       setError(false);
-      // 모든 프로젝트의 공지사항 가져오기
-      const projects = await getProjects();
-      const noticePromises = projects.map((project: any) =>
-        getNotices(project.id)
-          .then((data: any[]) =>
-            data.map((n: any) => ({
-              ...n,
-              project: { name: project.name, color: project.color },
-            })),
-          )
-          .catch(() => []),
-      );
-      const noticeArrays = await Promise.all(noticePromises);
-      const allNotices = noticeArrays.flat().sort((a: any, b: any) => {
-        // 고정 공지 먼저, 그 다음 최신순
+      const data = await getAllNotices();
+      // 고정 공지 먼저, 최신순 정렬
+      const sorted = data.sort((a: any, b: any) => {
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
         return (
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       });
-      setNotices(allNotices);
+      setNotices(sorted);
     } catch (error) {
       console.log("공지사항 조회 실패:", error);
       setError(true);

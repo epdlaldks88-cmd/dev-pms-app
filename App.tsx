@@ -38,6 +38,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import CreateTaskScreen from "./src/screens/CreateTaskScreen";
 import CreateMeetingScreen from "./src/screens/CreateMeetingScreen";
 import CreateIssueScreen from "./src/screens/CreateIssueScreen";
+import { BadgeProvider } from "./src/hooks/useBadge";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -169,7 +170,9 @@ function AppNavigator() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppNavigator />
+      <BadgeProvider>
+        <AppNavigator />
+      </BadgeProvider>
     </ThemeProvider>
   );
 }

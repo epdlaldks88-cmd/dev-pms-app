@@ -30,3 +30,8 @@ export const createIssue = async (
   const response = await apiClient.post(`/projects/${projectId}/issues`, data);
   return response.data;
 };
+
+export const getAllIssues = async () => {
+  const response = await apiClient.get("/issues");
+  return response.data;
+};

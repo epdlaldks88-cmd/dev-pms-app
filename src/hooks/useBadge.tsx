@@ -1,11 +1,23 @@
-import { useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUnreadCount } from "../api/notifications";
 import { getUnreadCount as getMessageUnreadCount } from "../api/messages";
 import { useSocket } from "./useSocket";
 import { usePolling } from "./usePolling";
 
-export const useBadge = () => {
+interface BadgeContextType {
+  notificationCount: number;
+  messageCount: number;
+  refresh: () => void;
+}
+
+const BadgeContext = createContext<BadgeContextType>({
+  notificationCount: 0,
+  messageCount: 0,
+  refresh: () => {},
+});
+
+export const BadgeProvider = ({ children }: { children: ReactNode }) => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -40,31 +52,16 @@ export const useBadge = () => {
     if (isLoggedIn) fetchCounts();
   }, [isLoggedIn]);
 
-  // WebSocket으로 실시간 알림 수신 시 카운트 갱신
-  useSocket(
-    "notification",
-    () => {
-      fetchCounts();
-    },
-    [isLoggedIn],
-  );
+  useSocket("notification", () => fetchCounts(), [isLoggedIn]);
+  useSocket("directMessage", () => fetchCounts(), [isLoggedIn]);
 
-  // WebSocket으로 실시간 쪽지 수신 시 카운트 갱신
-  useSocket(
-    "directMessage",
-    () => {
-      fetchCounts();
-    },
-    [isLoggedIn],
-  );
-
-  // SSE 알림도 유지 (fallback)
-  // useSSE('/notifications/events', () => {
-  //   fetchCounts();
-  // }, isLoggedIn);
-
-  // 60초 폴링 (fallback)
   usePolling(fetchCounts, 60000, isLoggedIn);
 
-  return { notificationCount, messageCount };
+  return (
+    <BadgeContext.Provider value={{ notificationCount, messageCount, refresh: fetchCounts }}>
+      {children}
+    </BadgeContext.Provider>
+  );
 };
+
+export const useBadge = () => useContext(BadgeContext);

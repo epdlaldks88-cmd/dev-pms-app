@@ -12,8 +12,6 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
-import { getWbsItems, updateWbsItem, deleteWbsItem } from "../api/wbs";
-import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
 import ErrorView from "../components/ErrorView";
@@ -21,6 +19,7 @@ import EmptyState from "../components/EmptyState";
 import Header from "../components/Header";
 import { SkeletonList } from "../components/SkeletonItem";
 import { formatDate } from "../utils/date";
+import { getAllWbsItems, updateWbsItem, deleteWbsItem } from "../api/wbs";
 
 interface WbsItem {
   id: string;
@@ -62,26 +61,9 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
   const fetchItems = async () => {
     try {
       setError(false);
-      const projects = await getProjects();
-      const wbsPromises = projects.map((project: any) =>
-        getWbsItems(project.id)
-          .then((data: any[]) =>
-            data.map((item: any) => ({
-              ...item,
-              project: {
-                id: project.id,
-                name: project.name,
-                color: project.color,
-              },
-            })),
-          )
-          .catch(() => []),
-      );
-      const wbsArrays = await Promise.all(wbsPromises);
-      const allItems = wbsArrays
-        .flat()
-        .sort((a: any, b: any) => a.order - b.order);
-      setItems(allItems);
+      const data = await getAllWbsItems();
+      const sorted = data.sort((a: any, b: any) => a.order - b.order);
+      setItems(sorted);
     } catch (e) {
       setError(true);
     } finally {
