@@ -16,3 +16,17 @@ export const updateIssue = async (
   );
   return response.data;
 };
+
+export const createIssue = async (
+  projectId: string,
+  data: {
+    title: string;
+    description?: string;
+    riskLevel?: string;
+    status?: string;
+    assigneeId?: string;
+  },
+) => {
+  const response = await apiClient.post(`/projects/${projectId}/issues`, data);
+  return response.data;
+};

@@ -75,6 +75,13 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
             </TouchableOpacity>
           )}
+          {activeIndex === 4 && ( // 이슈 탭
+            <TouchableOpacity
+              onPress={() => navigation.navigate("CreateIssue")}
+            >
+              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={() => navigation.navigate("Search")}>
             <Text style={[styles.searchIcon, { color: primary }]}>🔍</Text>
           </TouchableOpacity>
