@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
 
 const SOCKET_URL = "https://dev-pms-backend-production.up.railway.app";
 
@@ -58,7 +59,11 @@ export const useSocket = (
 export const useRoomSocket = (
   roomId: string,
   onMessage: (data: any) => void,
+  currentUserId?: string | null,
 ) => {
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
+
   useEffect(() => {
     let socket: Socket | null = null;
 
@@ -66,9 +71,7 @@ export const useRoomSocket = (
       socket = await getSocket();
       socket.emit("joinRoom", roomId);
       socket.on("roomMessage", (data: any) => {
-        if (data.roomId === roomId) {
-          onMessage(data);
-        }
+        onMessageRef.current(data);
       });
     };
 
@@ -81,4 +84,63 @@ export const useRoomSocket = (
       }
     };
   }, [roomId]);
+};
+
+export const useGlobalSocket = (currentUserId: string | null) => {
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    let s: Socket | null = null;
+
+    const connect = async () => {
+      s = await getSocket();
+
+      // 새 쪽지 토스트
+      s.on("directMessage", (data: any) => {
+        if (data.recipientId === currentUserId) {
+          Toast.show({
+            type: "info",
+            text1: `${data.sender?.name || "누군가"}님의 쪽지`,
+            text2: data.content,
+            visibilityTime: 3000,
+            position: "top",
+          });
+        }
+      });
+
+      // 새 알림 토스트
+      s.on("notification", (data: any) => {
+        Toast.show({
+          type: "success",
+          text1: data.title,
+          text2: data.message,
+          visibilityTime: 3000,
+          position: "top",
+        });
+      });
+
+      // 채팅방 메시지 토스트
+      s.on("globalRoomMessage", (data: any) => {
+        if (data.senderId !== currentUserId) {
+          Toast.show({
+            type: "info",
+            text1: `${data.sender?.name || "누군가"}`,
+            text2: data.content,
+            visibilityTime: 3000,
+            position: "top",
+          });
+        }
+      });
+    };
+
+    connect();
+
+    return () => {
+      if (s) {
+        s.off("directMessage");
+        s.off("notification");
+        s.off("globalRoomMessage");
+      }
+    };
+  }, [currentUserId]);
 };

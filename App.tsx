@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,6 +32,9 @@ import {
   createNavigationContainerRef,
 } from "@react-navigation/native";
 import { setNavigationRef } from "./src/api/client";
+import Toast from "react-native-toast-message";
+import { useGlobalSocket } from "./src/hooks/useSocket";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -40,6 +43,13 @@ const navigationContainerRef = createNavigationContainerRef();
 function TabNavigator() {
   const { primary, colors } = useTheme();
   const { notificationCount, messageCount } = useBadge();
+  const [myId, setMyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("userId").then(setMyId);
+  }, []);
+
+  useGlobalSocket(myId);
 
   return (
     <Tab.Navigator
@@ -142,6 +152,7 @@ function AppNavigator() {
         <Stack.Screen name="NoticeDetail" component={NoticeDetailScreen} />
         <Stack.Screen name="QA" component={QAScreen} />
       </Stack.Navigator>
+      <Toast />
     </NavigationContainer>
   );
 }

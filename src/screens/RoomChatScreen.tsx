@@ -43,9 +43,13 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { primary, colors } = useTheme();
 
-  useRoomSocket(roomId, () => {
-    fetchMessages();
-  });
+  useRoomSocket(
+    roomId,
+    () => {
+      fetchMessages();
+    },
+    myId,
+  ); // myId 추가
 
   useEffect(() => {
     const init = async () => {
