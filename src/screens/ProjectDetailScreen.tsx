@@ -11,6 +11,13 @@ import {
 import { getProjectDetail, getProjectTasks } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
 
 interface Project {
   id: string;
@@ -107,12 +114,6 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
     return labels[role] || role;
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -132,28 +133,7 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 헤더 */}
-      <View
-        style={{
-          padding: 16,
-          paddingTop: 56,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
-        </TouchableOpacity>
-        <Text
-          style={[styles.headerTitle, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          {project.name}
-        </Text>
-        <View style={{ width: 60 }} />
-      </View>
+      <Header title={project.name} onBack={() => navigation.goBack()} />
 
       {/* 프로젝트 정보 */}
       <View
@@ -176,8 +156,8 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
         <View style={styles.infoRow}>
           {project.startDate && (
             <Text style={[styles.infoText, { color: colors.textMuted }]}>
-              📅 {formatDate(project.startDate)} ~{" "}
-              {formatDate(project.endDate) || "미정"}
+              📅{project.startDate ? formatDate(project.startDate) : "미정"} ~{" "}
+              {project.endDate ? formatDate(project.endDate) : "미정"}
             </Text>
           )}
           <View style={[styles.statusBadge, { backgroundColor: "#22c55e20" }]}>

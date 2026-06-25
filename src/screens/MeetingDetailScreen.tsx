@@ -9,6 +9,13 @@ import {
 } from "react-native";
 import { getMeetingDetail } from "../api/meetings";
 import { useTheme } from "../theme/ThemeContext";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
 
 interface Meeting {
   id: string;
@@ -46,12 +53,6 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
     fetchMeeting();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const days = ["일", "월", "화", "수", "목", "금", "토"];
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()} (${days[date.getDay()]})`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -70,30 +71,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: 16,
-          paddingTop: 56,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-        }}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
-        </TouchableOpacity>
-        <Text
-          style={[styles.headerTitle, { color: colors.text }]}
-          numberOfLines={1}
-        >
-          회의 상세
-        </Text>
-        <View style={{ width: 60 }} />
-      </View>
-
+      <Header title="회의 상세" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.content}>
         <View
           style={[

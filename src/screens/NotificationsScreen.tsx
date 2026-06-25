@@ -16,6 +16,14 @@ import {
 } from "../api/notifications";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Notification {
   id: string;
@@ -27,7 +35,10 @@ interface Notification {
   createdAt: string;
 }
 
-export default function NotificationsScreen({ navigation }: any) {
+export default function NotificationsScreen({
+  navigation,
+  showHeader = true,
+}: any) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -133,19 +144,6 @@ export default function NotificationsScreen({ navigation }: any) {
     return labels[type] || type;
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    if (minutes < 1) return "방금 전";
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    return `${days}일 전`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -156,33 +154,37 @@ export default function NotificationsScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>알림</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => setShowUnreadOnly(!showUnreadOnly)}>
-            <Text
-              style={[
-                styles.filterBtn,
-                { color: showUnreadOnly ? primary : colors.textMuted },
-              ]}
+      {showHeader && (
+        <Header
+          title="알림"
+          rightElement={
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
             >
-              {showUnreadOnly ? "● 안읽음" : "○ 전체"}
-            </Text>
-          </TouchableOpacity>
-          {notifications.some((n) => !n.isRead) && (
-            <TouchableOpacity onPress={handleMarkAllAsRead}>
-              <Text style={[styles.markAllRead, { color: primary }]}>
-                모두 읽음
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+              <TouchableOpacity
+                onPress={() => setShowUnreadOnly(!showUnreadOnly)}
+              >
+                <Text
+                  style={{
+                    color: showUnreadOnly ? primary : colors.textMuted,
+                    fontSize: 13,
+                    fontWeight: "600",
+                  }}
+                >
+                  {showUnreadOnly ? "● 안읽음" : "○ 전체"}
+                </Text>
+              </TouchableOpacity>
+              {notifications.some((n) => !n.isRead) && (
+                <TouchableOpacity onPress={handleMarkAllAsRead}>
+                  <Text style={{ color: primary, fontSize: 14 }}>
+                    모두 읽음
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          }
+        />
+      )}
 
       {notifications.length === 0 ? (
         <ScrollView

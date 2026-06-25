@@ -13,6 +13,8 @@ import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Project {
   id: string;
@@ -95,21 +97,7 @@ export default function ProjectsScreen({ navigation, showHeader = true }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {showHeader && (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            프로젝트
-          </Text>
-        </View>
-      )}
+      {showHeader && <Header title="프로젝트" />}
       {projects.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}

@@ -14,6 +14,14 @@ import { getProjects } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Notice {
   id: string;
@@ -81,11 +89,6 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
     }, []),
   );
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -100,21 +103,7 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {showHeader && (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            공지사항
-          </Text>
-        </View>
-      )}
+      {showHeader && <Header title="공지사항" />}
       {notices.length === 0 ? (
         <ScrollView
           contentContainerStyle={styles.emptyContainer}

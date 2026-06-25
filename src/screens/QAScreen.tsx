@@ -14,6 +14,14 @@ import { getQAList, acceptQA, confirmQA, rejectQA, cancelQA } from "../api/qa";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface QA {
   id: string;
@@ -103,11 +111,6 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -123,22 +126,14 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showHeader && (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            QA 테스트
-          </Text>
-          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-            {qaList.length}건
-          </Text>
-        </View>
+        <Header
+          title="QA 테스트"
+          rightElement={
+            <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+              {qaList.length}건
+            </Text>
+          } // 기존 우측 버튼이 있으면 유지
+        />
       )}
       {qaList.length === 0 ? (
         <ScrollView

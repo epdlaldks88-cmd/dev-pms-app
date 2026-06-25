@@ -15,6 +15,14 @@ import { getWorklogs, acknowledgeWorklog } from "../api/worklogs";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Worklog {
   id: string;
@@ -106,11 +114,6 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
     return c[stage] || "#94a3b8";
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -126,22 +129,14 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showHeader && (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            워크로그
-          </Text>
-          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-            {worklogs.length}건
-          </Text>
-        </View>
+        <Header
+          title="워크로그"
+          rightElement={
+            <Text style={[styles.headerCount, { color: colors.textMuted }]}>
+              {worklogs.length}건
+            </Text>
+          } // 기존 우측 버튼이 있으면 유지
+        />
       )}
 
       {worklogs.length === 0 ? (

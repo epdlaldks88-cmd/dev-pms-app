@@ -14,6 +14,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getTaskDetail, updateTaskStatus, createComment } from "../api/tasks";
 import { useTheme } from "../theme/ThemeContext";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
 
 interface Task {
   id: string;
@@ -118,11 +125,6 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const getCurrentStatus = () =>
     STATUS_OPTIONS.find((s) => s.value === task?.status) || STATUS_OPTIONS[0];
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
-  };
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -148,29 +150,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: 16,
-            paddingTop: 56,
-            backgroundColor: colors.surface,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-          }}
-        >
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
-          </TouchableOpacity>
-          <Text
-            style={[styles.headerTitle, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            태스크 상세
-          </Text>
-          <View style={{ width: 60 }} />
-        </View>
+        <Header title="태스크 상세" onBack={() => navigation.goBack()} />
 
         <ScrollView style={styles.content}>
           <View

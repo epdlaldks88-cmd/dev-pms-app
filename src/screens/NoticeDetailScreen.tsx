@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
+import Header from "../components/Header";
 
 export default function NoticeDetailScreen({ route, navigation }: any) {
   const { notice } = route.params;
@@ -19,26 +20,7 @@ export default function NoticeDetailScreen({ route, navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: 16,
-          paddingTop: 56,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-        }}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          공지사항
-        </Text>
-        <View style={{ width: 60 }} />
-      </View>
+      <Header title="공지사항" onBack={() => navigation.goBack()} />
 
       <ScrollView style={styles.content}>
         <View

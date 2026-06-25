@@ -13,6 +13,14 @@ import { getMyTasks } from "../api/tasks";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
 import ErrorView from "../components/ErrorView";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Task {
   id: string;
@@ -94,12 +102,6 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
     return labels[status] || status;
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  };
-
   const isOverdue = (dateString?: string) => {
     if (!dateString) return false;
     return new Date(dateString) < new Date();
@@ -119,24 +121,7 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {showHeader && (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            내 태스크
-          </Text>
-          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-            {tasks.length}개
-          </Text>
-        </View>
-      )}
+      {showHeader && <Header title="내 태스크" />}
       {/* 필터 바 */}
       <ScrollView
         horizontal

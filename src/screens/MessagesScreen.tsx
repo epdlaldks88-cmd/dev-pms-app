@@ -10,6 +10,12 @@ import {
 } from "react-native";
 import { getConversations } from "../api/messages";
 import { useTheme } from "../theme/ThemeContext";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
 
 interface Conversation {
   user: { id: string; name: string; email: string };
@@ -48,19 +54,6 @@ export default function MessagesScreen({ navigation }: any) {
   useEffect(() => {
     fetchConversations();
   }, []);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    if (minutes < 1) return "방금";
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    return `${days}일 전`;
-  };
 
   if (loading) {
     return (

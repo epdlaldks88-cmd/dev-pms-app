@@ -13,6 +13,14 @@ import { getMeetings } from "../api/meetings";
 import { useTheme } from "../theme/ThemeContext";
 import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
+import {
+  formatDate,
+  formatDateLabel,
+  formatTime,
+  formatRelative,
+} from "../utils/date";
+import Header from "../components/Header";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Meeting {
   id: string;
@@ -94,20 +102,14 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showHeader && (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.surface,
-              borderBottomColor: colors.border,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.text }]}>회의</Text>
-          <Text style={[styles.headerCount, { color: colors.textMuted }]}>
-            {meetings.length}개
-          </Text>
-        </View>
+        <Header
+          title="회의"
+          rightElement={
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+              {meetings.length}개
+            </Text>
+          }
+        />
       )}
       {meetings.length === 0 ? (
         <ScrollView
