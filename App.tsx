@@ -36,6 +36,7 @@ import Toast from "react-native-toast-message";
 import { useGlobalSocket } from "./src/hooks/useSocket";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CreateTaskScreen from "./src/screens/CreateTaskScreen";
+import CreateMeetingScreen from "./src/screens/CreateMeetingScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -153,6 +154,7 @@ function AppNavigator() {
         <Stack.Screen name="NoticeDetail" component={NoticeDetailScreen} />
         <Stack.Screen name="QA" component={QAScreen} />
         <Stack.Screen name="CreateTask" component={CreateTaskScreen} />
+        <Stack.Screen name="CreateMeeting" component={CreateMeetingScreen} />
       </Stack.Navigator>
       <Toast />
     </NavigationContainer>

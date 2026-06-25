@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { getMeetingDetail } from "../api/meetings";
 import { useTheme } from "../theme/ThemeContext";
 import {
   formatDate,
@@ -16,6 +15,9 @@ import {
   formatRelative,
 } from "../utils/date";
 import Header from "../components/Header";
+import { TextInput, Alert } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { getMeetingDetail, updateMeeting } from "../api/meetings";
 
 interface Meeting {
   id: string;
@@ -36,12 +38,63 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
   const { primary, colors } = useTheme();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    content: "",
+    startTime: "",
+    endTime: "",
+    location: "",
+    attendees: "",
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [meetingDate, setMeetingDate] = useState("");
+
+  const handleSave = async () => {
+    if (!editForm.title.trim()) {
+      Alert.alert("오류", "제목을 입력해주세요");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateMeeting(meetingId, {
+        title: editForm.title,
+        content: editForm.content || undefined,
+        meetingDate: meetingDate || undefined,
+        startTime: editForm.startTime || undefined,
+        endTime: editForm.endTime || undefined,
+        location: editForm.location || undefined,
+        attendees: editForm.attendees || undefined,
+      });
+      setEditing(false);
+      await fetchMeeting();
+    } catch (error) {
+      Alert.alert("오류", "수정에 실패했습니다");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchMeeting = async () => {
     try {
       const data = await getMeetingDetail(meetingId);
-      console.log("회의 데이터:", JSON.stringify(data).slice(0, 500));
       setMeeting(data);
+      setMeetingDate(data.meetingDate ? data.meetingDate.split("T")[0] : "");
+      setEditForm({
+        title: data.title || "",
+        content: data.content || "",
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
+        location: data.location || "",
+        attendees:
+          data.attendees ||
+          data.participants?.map((p: any) => p.user.name).join(", ") ||
+          "",
+      });
+
+      console.log("attendees:", data.attendees);
+      console.log("participants:", data.participants);
     } catch (error) {
       console.log("회의 조회 실패:", error);
     } finally {
@@ -71,7 +124,25 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Header title="회의 상세" onBack={() => navigation.goBack()} />
+      <Header
+        title="회의 상세"
+        onBack={() => navigation.goBack()}
+        rightElement={
+          editing ? (
+            <TouchableOpacity onPress={handleSave} disabled={saving}>
+              {saving ? (
+                <ActivityIndicator size="small" color={primary} />
+              ) : (
+                <Text style={{ color: primary, fontWeight: "600" }}>저장</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => setEditing(true)}>
+              <Text style={{ color: primary, fontWeight: "600" }}>편집</Text>
+            </TouchableOpacity>
+          )
+        }
+      />
       <ScrollView style={styles.content}>
         <View
           style={[
@@ -94,75 +165,164 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
               </Text>
             </View>
           )}
-          <Text style={[styles.meetingTitle, { color: colors.text }]}>
-            {meeting.title}
-          </Text>
-          <Text style={[styles.date, { color: colors.textSecondary }]}>
-            📅 {formatDate(meeting.meetingDate)}
-          </Text>
-          {meeting.startTime && (
-            <Text style={[styles.time, { color: colors.textSecondary }]}>
-              🕐 {meeting.startTime}
-              {meeting.endTime ? ` ~ ${meeting.endTime}` : ""}
-            </Text>
-          )}
-          {meeting.location && (
-            <Text style={[styles.location, { color: colors.textSecondary }]}>
-              📍 {meeting.location}
-            </Text>
+          {editing ? (
+            <>
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={editForm.title}
+                onChangeText={(v) => setEditForm({ ...editForm, title: v })}
+                placeholder="제목"
+                placeholderTextColor={colors.textMuted}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.datePicker,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text
+                  style={{
+                    color: meetingDate ? colors.text : colors.textMuted,
+                  }}
+                >
+                  📅 {meetingDate || "날짜 선택"}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={meetingDate ? new Date(meetingDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowDatePicker(false);
+                    if (date) setMeetingDate(date.toISOString().split("T")[0]);
+                  }}
+                />
+              )}
+              <View style={styles.timeRow}>
+                <TextInput
+                  style={[
+                    styles.timeInput,
+                    {
+                      color: colors.text,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
+                  ]}
+                  value={editForm.startTime}
+                  onChangeText={(v) =>
+                    setEditForm({ ...editForm, startTime: v })
+                  }
+                  placeholder="시작 (HH:MM)"
+                  placeholderTextColor={colors.textMuted}
+                />
+                <Text style={{ color: colors.textMuted, marginHorizontal: 8 }}>
+                  ~
+                </Text>
+                <TextInput
+                  style={[
+                    styles.timeInput,
+                    {
+                      color: colors.text,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
+                  ]}
+                  value={editForm.endTime}
+                  onChangeText={(v) => setEditForm({ ...editForm, endTime: v })}
+                  placeholder="종료 (HH:MM)"
+                  placeholderTextColor={colors.textMuted}
+                />
+              </View>
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={editForm.location}
+                onChangeText={(v) => setEditForm({ ...editForm, location: v })}
+                placeholder="장소"
+                placeholderTextColor={colors.textMuted}
+              />
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={editForm.attendees}
+                onChangeText={(v) => setEditForm({ ...editForm, attendees: v })}
+                placeholder="참석자"
+                placeholderTextColor={colors.textMuted}
+              />
+              <TextInput
+                style={[
+                  styles.editTextArea,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={editForm.content}
+                onChangeText={(v) => setEditForm({ ...editForm, content: v })}
+                placeholder="회의 내용"
+                placeholderTextColor={colors.textMuted}
+                multiline
+              />
+            </>
+          ) : (
+            <>
+              <Text style={[styles.meetingTitle, { color: colors.text }]}>
+                {meeting.title}
+              </Text>
+              <Text style={[styles.date, { color: colors.textSecondary }]}>
+                📅 {formatDate(meeting.meetingDate)}
+              </Text>
+              {meeting.startTime && (
+                <Text style={[styles.time, { color: colors.textSecondary }]}>
+                  🕐 {meeting.startTime}
+                  {meeting.endTime ? ` ~ ${meeting.endTime}` : ""}
+                </Text>
+              )}
+              {meeting.location && (
+                <Text
+                  style={[styles.location, { color: colors.textSecondary }]}
+                >
+                  📍 {meeting.location}
+                </Text>
+              )}
+              {meeting.attendees && (
+                <Text
+                  style={[styles.location, { color: colors.textSecondary }]}
+                >
+                  👥 {meeting.attendees}
+                </Text>
+              )}
+            </>
           )}
         </View>
 
-        {/* 참석자 */}
-        {meeting.attendees && (
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              참석자
-            </Text>
-            <Text style={[styles.content2, { color: colors.textSecondary }]}>
-              {meeting.attendees}
-            </Text>
-          </View>
-        )}
-
-        {meeting.participants?.length > 0 && (
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              참석자 ({meeting.participants.length}명)
-            </Text>
-            <View style={styles.participantsRow}>
-              {meeting.participants.map((p) => (
-                <View key={p.user.id} style={styles.participant}>
-                  <View style={[styles.avatar, { backgroundColor: primary }]}>
-                    <Text style={styles.avatarText}>
-                      {p.user.name.charAt(0)}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.participantName,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {p.user.name}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {meeting.content && (
+        {/* 회의 내용 - 편집 모드 아닐 때만 */}
+        {!editing && meeting.content && (
           <View
             style={[
               styles.section,
@@ -177,19 +337,6 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
             </Text>
           </View>
         )}
-
-        <View
-          style={[
-            styles.section,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.createdBy, { color: colors.textMuted }]}>
-            작성자: {meeting.createdBy?.name}
-          </Text>
-        </View>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -229,4 +376,29 @@ const styles = StyleSheet.create({
   participantName: { fontSize: 12 },
   content2: { fontSize: 14, lineHeight: 22 },
   createdBy: { fontSize: 13 },
+  editInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  editTextArea: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: "top",
+    marginBottom: 8,
+  },
+  datePicker: { borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 8 },
+  timeRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  timeInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+  },
 });

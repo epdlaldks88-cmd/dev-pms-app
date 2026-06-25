@@ -63,8 +63,15 @@ export default function HomeScreen({ navigation }: any) {
       >
         <Text style={[styles.headerTitle, { color: colors.text }]}>PMS</Text>
         <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-          {activeIndex === 1 && ( // 태스크 탭
+          {activeIndex === 1 && (
             <TouchableOpacity onPress={() => navigation.navigate("CreateTask")}>
+              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
+            </TouchableOpacity>
+          )}
+          {activeIndex === 2 && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("CreateMeeting")}
+            >
               <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
             </TouchableOpacity>
           )}
