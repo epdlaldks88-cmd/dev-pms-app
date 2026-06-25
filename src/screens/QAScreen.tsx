@@ -24,6 +24,7 @@ import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
 import EmptyState from "../components/EmptyState";
+import { reopenQA } from "../api/qa";
 
 interface QA {
   id: string;
@@ -107,6 +108,7 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
       else if (action === "confirm") await confirmQA(id);
       else if (action === "reject") await rejectQA(id);
       else if (action === "cancel") await cancelQA(id);
+      else if (action === "reopen") await reopenQA(id);
       await fetchQA();
     } catch (error) {
       Alert.alert("오류", "처리에 실패했습니다");
@@ -256,6 +258,19 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
                     onPress={() => handleAction(item.id, "confirm")}
                   >
                     <Text style={styles.actionButtonText}>확인</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {(item.status === "COMPLETED" || item.status === "CANCELLED") && (
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: "#6366f1" },
+                    ]}
+                    onPress={() => handleAction(item.id, "reopen")}
+                  >
+                    <Text style={styles.actionButtonText}>되돌리기</Text>
                   </TouchableOpacity>
                 </View>
               )}

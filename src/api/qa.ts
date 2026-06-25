@@ -31,3 +31,8 @@ export const cancelQA = async (id: string) => {
   const response = await apiClient.patch(`/qa/${id}/cancel`);
   return response.data;
 };
+
+export const reopenQA = async (id: string) => {
+  const response = await apiClient.patch(`/qa/${id}/reopen`);
+  return response.data;
+};
