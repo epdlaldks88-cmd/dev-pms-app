@@ -79,6 +79,7 @@ export const updateTask = async (
   data: {
     title?: string;
     description?: string;
+    startDate?: string;
     dueDate?: string;
     priority?: string;
   },
@@ -88,5 +89,26 @@ export const updateTask = async (
     `/projects/${task.projectId}/tasks/${taskId}`,
     data,
   );
+  return response.data;
+};
+
+export const createTask = async (
+  projectId: string,
+  data: {
+    title: string;
+    description?: string;
+    priority?: string;
+    startDate?: string;
+    dueDate?: string;
+    stepId?: string;
+    assigneeIds?: string[];
+  },
+) => {
+  const response = await apiClient.post(`/projects/${projectId}/tasks`, data);
+  return response.data;
+};
+
+export const getProjectSteps = async (projectId: string) => {
+  const response = await apiClient.get(`/projects/${projectId}/steps`);
   return response.data;
 };

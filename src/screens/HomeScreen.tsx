@@ -62,9 +62,16 @@ export default function HomeScreen({ navigation }: any) {
         ]}
       >
         <Text style={[styles.headerTitle, { color: colors.text }]}>PMS</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Search")}>
-          <Text style={[styles.searchIcon, { color: primary }]}>🔍</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          {activeIndex === 1 && ( // 태스크 탭
+            <TouchableOpacity onPress={() => navigation.navigate("CreateTask")}>
+              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => navigation.navigate("Search")}>
+            <Text style={[styles.searchIcon, { color: primary }]}>🔍</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 스크롤 탭 */}

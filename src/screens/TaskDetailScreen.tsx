@@ -26,6 +26,7 @@ import {
   formatRelative,
 } from "../utils/date";
 import Header from "../components/Header";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 interface Task {
   id: string;
@@ -33,6 +34,7 @@ interface Task {
   description?: string;
   priority: string;
   status: string;
+  startDate?: string;
   dueDate?: string;
   project: { name: string; color: string };
   assignees: { user: { id: string; name: string } }[];
@@ -70,8 +72,11 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
+    startDate: "",
     dueDate: "",
   });
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showDuePicker, setShowDuePicker] = useState(false);
 
   const fetchTask = async () => {
     try {
@@ -81,6 +86,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
       setEditForm({
         title: data.title || "",
         description: data.description || "",
+        startDate: data.startDate ? data.startDate.split("T")[0] : "",
         dueDate: data.dueDate ? formatDate(data.dueDate) : "",
       });
     } catch (error) {
@@ -123,6 +129,8 @@ export default function TaskDetailScreen({ route, navigation }: any) {
       await updateTask(taskId, {
         title: editForm.title,
         description: editForm.description,
+        startDate: editForm.startDate || undefined,
+        dueDate: editForm.dueDate || undefined,
       });
       setEditing(false);
       await fetchTask();
@@ -217,37 +225,112 @@ export default function TaskDetailScreen({ route, navigation }: any) {
             </View>
             {editing ? (
               <>
-                <TextInput
+                <TouchableOpacity
                   style={[
-                    styles.editTitle,
+                    styles.datePicker,
                     {
-                      color: colors.text,
                       borderColor: colors.border,
                       backgroundColor: colors.background,
                     },
                   ]}
-                  value={editForm.title}
-                  onChangeText={(v) => setEditForm({ ...editForm, title: v })}
-                  placeholder="제목"
-                  placeholderTextColor={colors.textMuted}
-                />
-                <TextInput
+                  onPress={() => setShowStartPicker(true)}
+                >
+                  <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                    시작일
+                  </Text>
+                  <Text
+                    style={{
+                      color: editForm.startDate
+                        ? colors.text
+                        : colors.textMuted,
+                    }}
+                  >
+                    {editForm.startDate || "날짜 선택"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[
-                    styles.editDescription,
+                    styles.datePicker,
                     {
-                      color: colors.text,
                       borderColor: colors.border,
                       backgroundColor: colors.background,
+                      marginTop: 8,
                     },
                   ]}
-                  value={editForm.description}
-                  onChangeText={(v) =>
-                    setEditForm({ ...editForm, description: v })
-                  }
-                  placeholder="설명 입력..."
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                />
+                  onPress={() => setShowDuePicker(true)}
+                >
+                  <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                    마감일
+                  </Text>
+                  <Text
+                    style={{
+                      color: editForm.dueDate ? colors.text : colors.textMuted,
+                    }}
+                  >
+                    {editForm.dueDate || "날짜 선택"}
+                  </Text>
+                </TouchableOpacity>
+
+                {showStartPicker && (
+                  <DateTimePicker
+                    value={
+                      editForm.startDate
+                        ? new Date(editForm.startDate)
+                        : new Date()
+                    }
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowStartPicker(false);
+                      if (date)
+                        setEditForm({
+                          ...editForm,
+                          startDate: date.toISOString().split("T")[0],
+                        });
+                    }}
+                  />
+                )}
+                {showDuePicker && (
+                  <DateTimePicker
+                    value={
+                      editForm.dueDate &&
+                      !isNaN(new Date(editForm.dueDate).getTime())
+                        ? new Date(editForm.dueDate)
+                        : new Date()
+                    }
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowDuePicker(false);
+                      if (date)
+                        setEditForm({
+                          ...editForm,
+                          dueDate: date.toISOString().split("T")[0],
+                        });
+                    }}
+                  />
+                )}
+
+                {showStartPicker && (
+                  <DateTimePicker
+                    value={
+                      editForm.startDate &&
+                      !isNaN(new Date(editForm.startDate).getTime())
+                        ? new Date(editForm.startDate)
+                        : new Date()
+                    }
+                    mode="date"
+                    display="default"
+                    onChange={(event, date) => {
+                      setShowStartPicker(false);
+                      if (date)
+                        setEditForm({
+                          ...editForm,
+                          startDate: date.toISOString().split("T")[0],
+                        });
+                    }}
+                  />
+                )}
               </>
             ) : (
               <>
@@ -352,6 +435,16 @@ export default function TaskDetailScreen({ route, navigation }: any) {
               </View>
             )}
 
+            {task.startDate && (
+              <View style={styles.infoItem}>
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                  시작일
+                </Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>
+                  {formatDate(task.startDate)}
+                </Text>
+              </View>
+            )}
             {task.dueDate && (
               <View style={styles.infoItem}>
                 <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
@@ -665,5 +758,11 @@ const styles = StyleSheet.create({
     padding: 10,
     minHeight: 80,
     textAlignVertical: "top",
+  },
+  datePicker: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 4,
   },
 });

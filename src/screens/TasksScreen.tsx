@@ -32,6 +32,7 @@ interface Task {
   status: string;
   dueDate?: string;
   project: { name: string; color: string };
+  startDate?: string;
 }
 
 export default function TasksScreen({ navigation, showHeader = true }: any) {
@@ -133,7 +134,16 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {showHeader && <Header title="내 태스크" />}
+      {showHeader && (
+        <Header
+          title="내 태스크"
+          rightElement={
+            <TouchableOpacity onPress={() => navigation.navigate("CreateTask")}>
+              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
+            </TouchableOpacity>
+          }
+        />
+      )}
       {/* 필터 바 */}
       <ScrollView
         horizontal
@@ -164,6 +174,7 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
             onPress={() => setFilter(f.key as any)}
           >
             <Text
+              numberOfLines={1}
               style={[
                 styles.filterText,
                 { color: filter === f.key ? "#fff" : colors.textSecondary },
@@ -344,13 +355,19 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   emptyText: { fontSize: 16 },
-  filterBar: { borderBottomWidth: 1, maxHeight: 52 },
-  filterContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterBar: { borderBottomWidth: 1 },
+  filterContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    alignItems: "center",
+  },
   filterButton: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
+    flexShrink: 0, // 찌그러짐 방지
   },
-  filterText: { fontSize: 13, fontWeight: "500" },
+  filterText: { fontSize: 13, fontWeight: "500", flexShrink: 0 },
 });
