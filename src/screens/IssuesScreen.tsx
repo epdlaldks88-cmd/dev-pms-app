@@ -23,6 +23,7 @@ import {
 } from "../utils/date";
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SkeletonList } from "../components/SkeletonItem";
 
 interface Issue {
   id: string;
@@ -154,8 +155,9 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[{ flex: 1 }, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="이슈 관리" />}
+        <SkeletonList count={5} />
       </View>
     );
   }

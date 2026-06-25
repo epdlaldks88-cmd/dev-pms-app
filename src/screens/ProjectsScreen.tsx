@@ -15,6 +15,7 @@ import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SkeletonList } from "../components/SkeletonItem";
 
 interface Project {
   id: string;
@@ -85,8 +86,9 @@ export default function ProjectsScreen({ navigation, showHeader = true }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[{ flex: 1 }, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="프로젝트" />}
+        <SkeletonList count={5} />
       </View>
     );
   }
