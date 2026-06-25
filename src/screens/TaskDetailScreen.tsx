@@ -12,7 +12,12 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getTaskDetail, updateTaskStatus, createComment } from "../api/tasks";
+import {
+  getTaskDetail,
+  updateTaskStatus,
+  createComment,
+  updateTask,
+} from "../api/tasks";
 import { useTheme } from "../theme/ThemeContext";
 import {
   formatDate,
@@ -61,12 +66,23 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const insets = useSafeAreaInsets();
   const { primary, colors } = useTheme();
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    dueDate: "",
+  });
 
   const fetchTask = async () => {
     try {
       const data = await getTaskDetail(taskId);
       setTask(data);
       setComments(data.comments || []);
+      setEditForm({
+        title: data.title || "",
+        description: data.description || "",
+        dueDate: data.dueDate ? formatDate(data.dueDate) : "",
+      });
     } catch (error) {
       console.log("태스크 조회 실패:", error);
     } finally {
@@ -99,6 +115,19 @@ export default function TaskDetailScreen({ route, navigation }: any) {
       Alert.alert("오류", "댓글 작성에 실패했습니다");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateTask(taskId, {
+        title: editForm.title,
+        description: editForm.description,
+      });
+      setEditing(false);
+      await fetchTask();
+    } catch (error) {
+      Alert.alert("오류", "수정에 실패했습니다");
     }
   };
 
@@ -150,7 +179,21 @@ export default function TaskDetailScreen({ route, navigation }: any) {
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Header title="태스크 상세" onBack={() => navigation.goBack()} />
+        <Header
+          title="태스크 상세"
+          onBack={() => navigation.goBack()}
+          rightElement={
+            editing ? (
+              <TouchableOpacity onPress={handleSave}>
+                <Text style={{ color: primary, fontWeight: "600" }}>저장</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => setEditing(true)}>
+                <Text style={{ color: primary, fontWeight: "600" }}>편집</Text>
+              </TouchableOpacity>
+            )
+          }
+        />
 
         <ScrollView style={styles.content}>
           <View
@@ -172,15 +215,56 @@ export default function TaskDetailScreen({ route, navigation }: any) {
                 {task.project?.name}
               </Text>
             </View>
-            <Text style={[styles.taskTitle, { color: colors.text }]}>
-              {task.title}
-            </Text>
-            {task.description && (
-              <Text
-                style={[styles.description, { color: colors.textSecondary }]}
-              >
-                {task.description}
-              </Text>
+            {editing ? (
+              <>
+                <TextInput
+                  style={[
+                    styles.editTitle,
+                    {
+                      color: colors.text,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
+                  ]}
+                  value={editForm.title}
+                  onChangeText={(v) => setEditForm({ ...editForm, title: v })}
+                  placeholder="제목"
+                  placeholderTextColor={colors.textMuted}
+                />
+                <TextInput
+                  style={[
+                    styles.editDescription,
+                    {
+                      color: colors.text,
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                    },
+                  ]}
+                  value={editForm.description}
+                  onChangeText={(v) =>
+                    setEditForm({ ...editForm, description: v })
+                  }
+                  placeholder="설명 입력..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                />
+              </>
+            ) : (
+              <>
+                <Text style={[styles.taskTitle, { color: colors.text }]}>
+                  {task.title}
+                </Text>
+                {task.description && (
+                  <Text
+                    style={[
+                      styles.description,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {task.description}
+                  </Text>
+                )}
+              </>
             )}
           </View>
 
@@ -566,4 +650,20 @@ const styles = StyleSheet.create({
   },
   subTaskTitle: { flex: 1, fontSize: 14 },
   subTaskStatus: { fontSize: 18 },
+  editTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+  },
+  editDescription: {
+    fontSize: 14,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
 });

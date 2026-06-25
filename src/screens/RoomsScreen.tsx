@@ -10,10 +10,12 @@ import {
   Alert,
   TextInput,
   Modal,
+  ScrollView,
 } from "react-native";
 import { getMyRooms, createRoom } from "../api/rooms";
 import { getAllUsers } from "../api/users";
 import { useTheme } from "../theme/ThemeContext";
+import EmptyState from "../components/EmptyState";
 
 interface Room {
   id: string;
@@ -125,11 +127,20 @@ export default function RoomsScreen({ navigation }: any) {
       </View>
 
       {rooms.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            채팅방이 없습니다
-          </Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <EmptyState
+            icon="💬"
+            title="채팅방이 없습니다"
+            description="새 채팅방을 만들어보세요"
+            actionLabel="채팅방 만들기"
+            onAction={() => setShowCreate(true)}
+          />
+        </ScrollView>
       ) : (
         <FlatList
           data={rooms}

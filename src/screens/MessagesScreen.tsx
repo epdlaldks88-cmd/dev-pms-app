@@ -7,6 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { getConversations } from "../api/messages";
 import { useTheme } from "../theme/ThemeContext";
@@ -16,6 +17,7 @@ import {
   formatTime,
   formatRelative,
 } from "../utils/date";
+import EmptyState from "../components/EmptyState";
 
 interface Conversation {
   user: { id: string; name: string; email: string };
@@ -78,11 +80,20 @@ export default function MessagesScreen({ navigation }: any) {
       </View>
 
       {conversations.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            쪽지가 없습니다
-          </Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <EmptyState
+            icon="💬"
+            title="쪽지가 없습니다"
+            description="아직 주고받은 쪽지가 없어요"
+            actionLabel="새 쪽지 보내기"
+            onAction={() => navigation.navigate("NewMessage")}
+          />
+        </ScrollView>
       ) : (
         <FlatList
           data={conversations}

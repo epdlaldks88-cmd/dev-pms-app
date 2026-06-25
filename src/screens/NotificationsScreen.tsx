@@ -25,6 +25,7 @@ import {
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
+import EmptyState from "../components/EmptyState";
 
 interface Notification {
   id: string;
@@ -190,14 +191,20 @@ export default function NotificationsScreen({
 
       {notifications.length === 0 ? (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={{ flex: 1 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            알림이 없습니다
-          </Text>
+          <EmptyState
+            icon="🔔"
+            title="알림이 없습니다"
+            description={
+              showUnreadOnly
+                ? "읽지 않은 알림이 없어요"
+                : "새로운 알림이 없어요"
+            }
+          />
         </ScrollView>
       ) : (
         <FlatList

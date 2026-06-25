@@ -22,6 +22,7 @@ import {
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
+import EmptyState from "../components/EmptyState";
 
 interface Meeting {
   id: string;
@@ -115,14 +116,16 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
       )}
       {meetings.length === 0 ? (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={{ flex: 1 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            회의가 없습니다
-          </Text>
+          <EmptyState
+            icon="📅"
+            title="회의가 없습니다"
+            description="예정된 회의가 없어요"
+          />
         </ScrollView>
       ) : (
         <FlatList

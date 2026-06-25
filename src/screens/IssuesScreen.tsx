@@ -24,6 +24,7 @@ import {
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
+import EmptyState from "../components/EmptyState";
 
 interface Issue {
   id: string;
@@ -180,14 +181,16 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
       )}
       {issues.length === 0 ? (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={{ flex: 1 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            이슈가 없습니다
-          </Text>
+          <EmptyState
+            icon="⚠️"
+            title="이슈가 없습니다"
+            description="등록된 이슈가 없어요"
+          />
         </ScrollView>
       ) : (
         <FlatList

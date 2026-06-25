@@ -9,9 +9,12 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { search } from "../api/search";
 import { useTheme } from "../theme/ThemeContext";
+import EmptyState from "../components/EmptyState";
 
 interface SearchResult {
   tasks: {
@@ -28,6 +31,7 @@ export default function SearchScreen({ navigation }: any) {
   const [results, setResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const { primary, colors } = useTheme();
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -125,11 +129,11 @@ export default function SearchScreen({ navigation }: any) {
             </Text>
           </View>
         ) : totalCount === 0 ? (
-          <View style={styles.center}>
-            <Text style={[styles.hintText, { color: colors.textMuted }]}>
-              검색 결과가 없습니다
-            </Text>
-          </View>
+          <EmptyState
+            icon="🔍"
+            title="검색 결과가 없습니다"
+            description={`"${query}"에 대한 결과가 없어요`}
+          />
         ) : (
           <FlatList
             data={[

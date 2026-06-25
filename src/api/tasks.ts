@@ -1,7 +1,7 @@
 import { apiClient } from "./client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const getMyTasks = async () => {
+export const getMyTasks = async (page: number = 1, limit: number = 20) => {
   const userId = await AsyncStorage.getItem("userId");
 
   const projectsRes = await apiClient.get("/projects");
@@ -15,14 +15,24 @@ export const getMyTasks = async () => {
       .then((res) =>
         res.data.map((task: any) => ({
           ...task,
-          project: { name: project.name, color: project.color }, // 프로젝트 정보 직접 붙이기
+          project: { name: project.name, color: project.color },
         })),
       )
       .catch(() => []),
   );
 
   const taskArrays = await Promise.all(taskPromises);
-  return taskArrays.flat();
+  const allTasks = taskArrays.flat();
+
+  // 클라이언트 사이드 페이지네이션
+  const start = (page - 1) * limit;
+  const end = start + limit;
+
+  return {
+    data: allTasks.slice(start, end),
+    total: allTasks.length,
+    hasMore: end < allTasks.length,
+  };
 };
 
 export const getTaskDetail = async (taskId: string) => {
@@ -61,5 +71,22 @@ export const createComment = async (taskId: string, content: string) => {
   const response = await apiClient.post(`/tasks/${taskId}/comments`, {
     content,
   });
+  return response.data;
+};
+
+export const updateTask = async (
+  taskId: string,
+  data: {
+    title?: string;
+    description?: string;
+    dueDate?: string;
+    priority?: string;
+  },
+) => {
+  const task = await getTaskDetail(taskId);
+  const response = await apiClient.patch(
+    `/projects/${task.projectId}/tasks/${taskId}`,
+    data,
+  );
   return response.data;
 };

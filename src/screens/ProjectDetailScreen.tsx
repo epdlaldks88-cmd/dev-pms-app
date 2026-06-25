@@ -18,6 +18,7 @@ import {
   formatRelative,
 } from "../utils/date";
 import Header from "../components/Header";
+import EmptyState from "../components/EmptyState";
 
 interface Project {
   id: string;
@@ -46,6 +47,10 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tasks" | "members">("tasks");
   const { primary, colors } = useTheme();
+
+  const [taskFilter, setTaskFilter] = useState<
+    "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE"
+  >("ALL");
 
   useFocusEffect(
     useCallback(() => {
@@ -251,91 +256,143 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
 
       {/* 태스크 목록 */}
       {activeTab === "tasks" && (
-        <FlatList
-          data={tasks}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                태스크가 없습니다
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.taskItem,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-              onPress={() =>
-                navigation.navigate("TaskDetail", { taskId: item.id })
-              }
-            >
-              <View style={styles.taskTop}>
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={[
+              styles.filterBar,
+              {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.border,
+              },
+            ]}
+            contentContainerStyle={styles.filterContent}
+          >
+            {[
+              { key: "ALL", label: "전체" },
+              { key: "TODO", label: "할일" },
+              { key: "IN_PROGRESS", label: "진행중" },
+              { key: "IN_REVIEW", label: "검토중" },
+              { key: "DONE", label: "완료" },
+            ].map((f) => (
+              <TouchableOpacity
+                key={f.key}
+                style={[
+                  styles.filterButton,
+                  { borderColor: colors.border },
+                  taskFilter === f.key && {
+                    backgroundColor: primary,
+                    borderColor: primary,
+                  },
+                ]}
+                onPress={() => setTaskFilter(f.key as any)}
+              >
                 <Text
-                  style={[styles.taskTitle, { color: colors.text }]}
-                  numberOfLines={1}
-                >
-                  {item.title}
-                </Text>
-                <View
                   style={[
-                    styles.priorityBadge,
-                    { backgroundColor: getPriorityColor(item.priority) + "20" },
+                    styles.filterText,
+                    {
+                      color:
+                        taskFilter === f.key ? "#fff" : colors.textSecondary,
+                    },
                   ]}
                 >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <FlatList
+            data={tasks}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                  태스크가 없습니다
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.taskItem,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() =>
+                  navigation.navigate("TaskDetail", { taskId: item.id })
+                }
+              >
+                <View style={styles.taskTop}>
                   <Text
+                    style={[styles.taskTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {item.title}
+                  </Text>
+                  <View
                     style={[
-                      styles.priorityText,
-                      { color: getPriorityColor(item.priority) },
+                      styles.priorityBadge,
+                      {
+                        backgroundColor: getPriorityColor(item.priority) + "20",
+                      },
                     ]}
                   >
-                    {item.priority === "URGENT"
-                      ? "긴급"
-                      : item.priority === "HIGH"
-                        ? "높음"
-                        : item.priority === "MEDIUM"
-                          ? "보통"
-                          : "낮음"}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.taskBottom}>
-                <Text
-                  style={[
-                    styles.taskStatus,
-                    { color: getStatusColor(item.status) },
-                  ]}
-                >
-                  {getStatusLabel(item.status)}
-                </Text>
-                {item.dueDate && (
-                  <Text style={[styles.dueDate, { color: colors.textMuted }]}>
-                    마감 {formatDate(item.dueDate)}
-                  </Text>
-                )}
-                {item.assignees?.length > 0 && (
-                  <View style={styles.assignees}>
-                    {item.assignees.slice(0, 3).map((a) => (
-                      <View
-                        key={a.user.id}
-                        style={[
-                          styles.assigneeAvatar,
-                          { backgroundColor: primary },
-                        ]}
-                      >
-                        <Text style={styles.assigneeAvatarText}>
-                          {a.user.name.charAt(0)}
-                        </Text>
-                      </View>
-                    ))}
+                    <Text
+                      style={[
+                        styles.priorityText,
+                        { color: getPriorityColor(item.priority) },
+                      ]}
+                    >
+                      {item.priority === "URGENT"
+                        ? "긴급"
+                        : item.priority === "HIGH"
+                          ? "높음"
+                          : item.priority === "MEDIUM"
+                            ? "보통"
+                            : "낮음"}
+                    </Text>
                   </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          )}
-        />
+                </View>
+                <View style={styles.taskBottom}>
+                  <Text
+                    style={[
+                      styles.taskStatus,
+                      { color: getStatusColor(item.status) },
+                    ]}
+                  >
+                    {getStatusLabel(item.status)}
+                  </Text>
+                  {item.dueDate && (
+                    <Text style={[styles.dueDate, { color: colors.textMuted }]}>
+                      마감 {formatDate(item.dueDate)}
+                    </Text>
+                  )}
+                  {item.assignees?.length > 0 && (
+                    <View style={styles.assignees}>
+                      {item.assignees.slice(0, 3).map((a) => (
+                        <View
+                          key={a.user.id}
+                          style={[
+                            styles.assigneeAvatar,
+                            { backgroundColor: primary },
+                          ]}
+                        >
+                          <Text style={styles.assigneeAvatarText}>
+                            {a.user.name.charAt(0)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </>
       )}
 
       {/* 멤버 목록 */}
@@ -456,4 +513,13 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   emptyText: { fontSize: 16 },
+  filterBar: { borderBottomWidth: 1, maxHeight: 52 },
+  filterContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterText: { fontSize: 13, fontWeight: "500" },
 });

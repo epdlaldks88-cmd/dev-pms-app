@@ -22,6 +22,7 @@ import {
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
+import EmptyState from "../components/EmptyState";
 
 interface Task {
   id: string;
@@ -42,17 +43,26 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
   const [filter, setFilter] = useState<
     "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE"
   >("ALL");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (pageNum: number = 1) => {
     try {
       setError(false);
-      const data = await getMyTasks();
-      setTasks(data);
+      const result = await getMyTasks(pageNum);
+      if (pageNum === 1) {
+        setTasks(result.data);
+      } else {
+        setTasks((prev) => [...prev, ...result.data]);
+      }
+      setHasMore(result.hasMore);
+      setPage(pageNum);
     } catch (error) {
-      console.log("태스크 조회 실패:", error);
       setError(true);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -166,14 +176,16 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
       </ScrollView>
       {tasks.length === 0 ? (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={{ flex: 1 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            배정된 태스크가 없습니다
-          </Text>
+          <EmptyState
+            icon="✅"
+            title="배정된 태스크가 없습니다"
+            description="아직 나에게 배정된 태스크가 없어요"
+          />
         </ScrollView>
       ) : (
         <FlatList
@@ -184,6 +196,29 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          onEndReached={() => {
+            if (hasMore && !loadingMore) {
+              setLoadingMore(true);
+              fetchTasks(page + 1);
+            }
+          }}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator
+                size="small"
+                color={primary}
+                style={{ marginVertical: 16 }}
+              />
+            ) : null
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="✅"
+              title="배정된 태스크가 없습니다"
+              description="아직 나에게 배정된 태스크가 없어요"
+            />
           }
           renderItem={({ item }) => (
             <TouchableOpacity

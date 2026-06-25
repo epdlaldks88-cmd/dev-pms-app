@@ -23,6 +23,7 @@ import {
 import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
+import EmptyState from "../components/EmptyState";
 
 interface Notice {
   id: string;
@@ -108,14 +109,16 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
       {showHeader && <Header title="공지사항" />}
       {notices.length === 0 ? (
         <ScrollView
-          contentContainerStyle={styles.emptyContainer}
+          contentContainerStyle={{ flex: 1 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            공지사항이 없습니다
-          </Text>
+          <EmptyState
+            icon="📢"
+            title="공지사항이 없습니다"
+            description="등록된 공지사항이 없어요"
+          />
         </ScrollView>
       ) : (
         <FlatList
