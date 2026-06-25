@@ -14,6 +14,7 @@ import { getMyProfile, updateProfile } from "../api/users";
 import { logout } from "../api/auth";
 import { useTheme } from "../theme/ThemeContext";
 import { THEMES, ThemeKey } from "../theme/colors";
+import Header from "../components/Header";
 
 interface User {
   id: string;
@@ -105,27 +106,22 @@ export default function ProfileScreen({ navigation }: any) {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       {/* 헤더 */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          마이페이지
-        </Text>
-        <TouchableOpacity
-          onPress={() => (editing ? handleSave() : setEditing(true))}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color={primary} />
-          ) : (
-            <Text style={[styles.editButton, { color: primary }]}>
-              {editing ? "저장" : "편집"}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      <Header
+        title="마이페이지"
+        rightElement={
+          <TouchableOpacity
+            onPress={() => (editing ? handleSave() : setEditing(true))}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={primary} />
+            ) : (
+              <Text style={{ color: primary, fontWeight: "600" }}>
+                {editing ? "저장" : "편집"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        }
+      />
 
       {/* 아바타 */}
       <View style={[styles.avatarSection, { backgroundColor: colors.surface }]}>
@@ -345,15 +341,6 @@ export default function ProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
   editButton: { fontSize: 16, fontWeight: "600" },
   avatarSection: { alignItems: "center", padding: 32, marginBottom: 8 },
   avatar: {

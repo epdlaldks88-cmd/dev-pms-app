@@ -16,6 +16,8 @@ import QAScreen from "./QAScreen";
 import { useTheme } from "../theme/ThemeContext";
 import WorklogsScreen from "./WorklogsScreen";
 import WbsScreen from "./WbsScreen";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Header from "../components/Header";
 
 const TABS = [
   { key: "projects", label: "프로젝트" },
@@ -33,6 +35,7 @@ export default function HomeScreen({ navigation }: any) {
   const pagerRef = useRef<PagerView>(null);
   const tabScrollRef = useRef<ScrollView>(null);
   const { primary, colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const handleTabPress = (index: number) => {
     setActiveIndex(index);
@@ -57,38 +60,43 @@ export default function HomeScreen({ navigation }: any) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 헤더 */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>PMS</Text>
-        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
-          {activeIndex === 1 && (
-            <TouchableOpacity onPress={() => navigation.navigate("CreateTask")}>
-              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
+      <Header
+        title="PMS"
+        rightElement={
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+            {activeIndex === 1 && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("CreateTask")}
+              >
+                <Text style={{ color: primary, fontWeight: "600" }}>
+                  + 생성
+                </Text>
+              </TouchableOpacity>
+            )}
+            {activeIndex === 2 && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("CreateMeeting")}
+              >
+                <Text style={{ color: primary, fontWeight: "600" }}>
+                  + 생성
+                </Text>
+              </TouchableOpacity>
+            )}
+            {activeIndex === 4 && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("CreateIssue")}
+              >
+                <Text style={{ color: primary, fontWeight: "600" }}>
+                  + 생성
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => navigation.navigate("Search")}>
+              <Text style={{ color: primary, fontSize: 20 }}>🔍</Text>
             </TouchableOpacity>
-          )}
-          {activeIndex === 2 && (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("CreateMeeting")}
-            >
-              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
-            </TouchableOpacity>
-          )}
-          {activeIndex === 4 && ( // 이슈 탭
-            <TouchableOpacity
-              onPress={() => navigation.navigate("CreateIssue")}
-            >
-              <Text style={{ color: primary, fontWeight: "600" }}>+ 생성</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => navigation.navigate("Search")}>
-            <Text style={[styles.searchIcon, { color: primary }]}>🔍</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          </View>
+        }
+      />
 
       {/* 스크롤 탭 */}
       <View
@@ -167,16 +175,6 @@ export default function HomeScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 22, fontWeight: "bold" },
-  searchIcon: { fontSize: 20 },
   tabContainer: {
     borderBottomWidth: 1,
   },

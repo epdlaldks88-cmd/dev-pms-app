@@ -4,6 +4,7 @@ import MessagesScreen from "./MessagesScreen";
 import RoomsScreen from "./RoomsScreen";
 import { useTheme } from "../theme/ThemeContext";
 import { useBadge } from "../hooks/useBadge";
+import Header from "../components/Header";
 
 const TABS = [
   { key: "messages", label: "쪽지" },
@@ -17,14 +18,7 @@ export default function ChatScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>메시지</Text>
-      </View>
+      <Header title="메시지" />
 
       <View
         style={[
@@ -73,12 +67,6 @@ export default function ChatScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 22, fontWeight: "bold" },
   tabRow: {
     flexDirection: "row",
     borderBottomWidth: 1,

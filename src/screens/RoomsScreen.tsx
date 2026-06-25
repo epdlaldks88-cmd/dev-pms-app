@@ -114,11 +114,10 @@ export default function RoomsScreen({ navigation }: any) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
         style={[
-          styles.header,
+          styles.actionBar,
           { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>채팅방</Text>
         <TouchableOpacity onPress={() => setShowCreate(true)}>
           <Text style={[styles.newButton, { color: primary }]}>
             + 새 채팅방
@@ -305,7 +304,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 20, fontWeight: "bold" },
-  newButton: { fontSize: 14, fontWeight: "600" },
   item: {
     flexDirection: "row",
     padding: 16,
@@ -372,4 +370,11 @@ const styles = StyleSheet.create({
   modalButtons: { flexDirection: "row", gap: 12, marginTop: 16 },
   modalButton: { flex: 1, padding: 14, borderRadius: 8, alignItems: "center" },
   modalButtonText: { fontSize: 15, fontWeight: "600" },
+  actionBar: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    padding: 12,
+    borderBottomWidth: 1,
+  },
+  newButton: { fontSize: 14, fontWeight: "600" },
 });

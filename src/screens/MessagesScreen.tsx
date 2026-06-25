@@ -69,16 +69,14 @@ export default function MessagesScreen({ navigation }: any) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
         style={[
-          styles.header,
+          styles.actionBar,
           { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: colors.text }]}>쪽지</Text>
         <TouchableOpacity onPress={() => navigation.navigate("NewMessage")}>
           <Text style={[styles.newButton, { color: primary }]}>+ 새 쪽지</Text>
         </TouchableOpacity>
       </View>
-
       {conversations.length === 0 ? (
         <ScrollView
           contentContainerStyle={{ flex: 1 }}
@@ -216,4 +214,10 @@ const styles = StyleSheet.create({
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
   emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 16 },
+  actionBar: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    padding: 12,
+    borderBottomWidth: 1,
+  },
 });
