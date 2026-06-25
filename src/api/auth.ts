@@ -1,11 +1,11 @@
 import { apiClient } from "./client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { disconnectSocket } from "../hooks/useSocket";
 
 export const login = async (email: string, password: string) => {
   try {
     const response = await apiClient.post("/auth/login", { email, password });
     const { accessToken, refreshToken, user } = response.data;
-    console.log("로그인 응답:", JSON.stringify(response.data));
     await AsyncStorage.setItem("accessToken", accessToken);
     await AsyncStorage.setItem("refreshToken", refreshToken);
     if (user?.id) {
@@ -19,7 +19,6 @@ export const login = async (email: string, password: string) => {
 };
 
 export const logout = async () => {
-  await AsyncStorage.removeItem("accessToken");
-  await AsyncStorage.removeItem("refreshToken");
-  await AsyncStorage.removeItem("userId");
+  disconnectSocket();
+  await AsyncStorage.multiRemove(["accessToken", "refreshToken", "userId"]);
 };

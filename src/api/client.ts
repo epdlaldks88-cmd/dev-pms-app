@@ -5,7 +5,7 @@ const API_URL = "https://dev-pms-backend-production.up.railway.app/api";
 
 export const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000, // 10초 → 30초
 });
 
 // 네비게이션 참조 (외부에서 설정)

@@ -15,14 +15,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getRoomMessages, sendRoomMessage, leaveRoom } from "../api/rooms";
 import { useTheme } from "../theme/ThemeContext";
-import { usePolling } from "../hooks/usePolling";
-import { Keyboard } from "react-native";
+import { useRoomSocket } from "../hooks/useSocket";
 import {
   formatDate,
   formatDateLabel,
   formatTime,
   formatRelative,
 } from "../utils/date";
+import { Keyboard, KeyboardEvent } from "react-native";
 
 interface RoomMessage {
   id: string;
@@ -42,9 +42,10 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
   const { primary, colors } = useTheme();
-  usePolling(() => {
-    if (!loading) fetchMessages();
-  }, 3000);
+
+  useRoomSocket(roomId, () => {
+    fetchMessages();
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -53,6 +54,28 @@ export default function RoomChatScreen({ route, navigation }: any) {
       await fetchMessages();
     };
     init();
+  }, []);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const willShowSubscription = Keyboard.addListener(
+      "keyboardWillShow",
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      },
+    );
+
+    return () => {
+      showSubscription.remove();
+      willShowSubscription.remove();
+    };
   }, []);
 
   const fetchMessages = async () => {
@@ -122,6 +145,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View
@@ -160,6 +184,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: false })
           }
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
           renderItem={({ item, index }) => {
             const isMine = item.senderId === myId;
             return (
@@ -269,6 +294,11 @@ export default function RoomChatScreen({ route, navigation }: any) {
             value={message}
             onChangeText={setMessage}
             multiline
+            onFocus={() => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 300);
+            }}
           />
           <TouchableOpacity
             style={[

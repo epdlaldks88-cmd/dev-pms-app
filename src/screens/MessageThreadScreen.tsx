@@ -15,14 +15,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getThread, sendMessage } from "../api/messages";
 import { useTheme } from "../theme/ThemeContext";
-import { usePolling } from "../hooks/usePolling";
-import { Keyboard } from "react-native";
+import { useSocket } from "../hooks/useSocket";
 import {
   formatDate,
   formatDateLabel,
   formatTime,
   formatRelative,
 } from "../utils/date";
+import { Keyboard, KeyboardEvent } from "react-native";
 
 interface Message {
   id: string;
@@ -44,9 +44,16 @@ export default function MessageThreadScreen({ route, navigation }: any) {
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
   const { primary, colors } = useTheme();
-  usePolling(() => {
-    if (!loading) fetchMessages();
-  }, 3000);
+
+  useSocket(
+    "directMessage",
+    (data) => {
+      if (data.recipientId === myId || data.senderId === myId) {
+        fetchMessages();
+      }
+    },
+    [myId],
+  );
 
   useEffect(() => {
     const init = async () => {
@@ -55,6 +62,28 @@ export default function MessageThreadScreen({ route, navigation }: any) {
       await fetchMessages();
     };
     init();
+  }, []);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const willShowSubscription = Keyboard.addListener(
+      "keyboardWillShow",
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      },
+    );
+
+    return () => {
+      showSubscription.remove();
+      willShowSubscription.remove();
+    };
   }, []);
 
   const fetchMessages = async () => {
@@ -106,6 +135,7 @@ export default function MessageThreadScreen({ route, navigation }: any) {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View
@@ -138,6 +168,7 @@ export default function MessageThreadScreen({ route, navigation }: any) {
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: false })
           }
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
           renderItem={({ item, index }) => {
             const isMine = item.senderId === myId;
             return (
@@ -238,6 +269,11 @@ export default function MessageThreadScreen({ route, navigation }: any) {
             value={message}
             onChangeText={setMessage}
             multiline
+            onFocus={() => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 300);
+            }}
           />
           <TouchableOpacity
             style={[

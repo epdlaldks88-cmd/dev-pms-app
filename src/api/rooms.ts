@@ -1,4 +1,29 @@
 import { apiClient } from "./client";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const API_URL = "https://dev-pms-backend-production.up.railway.app/api";
+
+// 채팅 전용 axios 인스턴스 (SSE와 분리)
+const chatClient = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+});
+
+chatClient.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem("accessToken");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const sendRoomMessage = async (roomId: string, content: string) => {
+  const response = await chatClient.post(`/rooms/${roomId}/messages`, {
+    content,
+  });
+  return response.data;
+};
 
 export const getMyRooms = async () => {
   const response = await apiClient.get("/rooms");
@@ -12,13 +37,6 @@ export const createRoom = async (name: string, memberIds: string[]) => {
 
 export const getRoomMessages = async (roomId: string) => {
   const response = await apiClient.get(`/rooms/${roomId}/messages`);
-  return response.data;
-};
-
-export const sendRoomMessage = async (roomId: string, content: string) => {
-  const response = await apiClient.post(`/rooms/${roomId}/messages`, {
-    content,
-  });
   return response.data;
 };
 

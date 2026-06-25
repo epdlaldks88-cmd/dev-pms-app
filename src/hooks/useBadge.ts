@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUnreadCount } from "../api/notifications";
 import { getUnreadCount as getMessageUnreadCount } from "../api/messages";
+import { useSocket } from "./useSocket";
 import { usePolling } from "./usePolling";
 
 export const useBadge = () => {
@@ -39,7 +40,31 @@ export const useBadge = () => {
     if (isLoggedIn) fetchCounts();
   }, [isLoggedIn]);
 
-  usePolling(fetchCounts, 10000, isLoggedIn);
+  // WebSocket으로 실시간 알림 수신 시 카운트 갱신
+  useSocket(
+    "notification",
+    () => {
+      fetchCounts();
+    },
+    [isLoggedIn],
+  );
+
+  // WebSocket으로 실시간 쪽지 수신 시 카운트 갱신
+  useSocket(
+    "directMessage",
+    () => {
+      fetchCounts();
+    },
+    [isLoggedIn],
+  );
+
+  // SSE 알림도 유지 (fallback)
+  // useSSE('/notifications/events', () => {
+  //   fetchCounts();
+  // }, isLoggedIn);
+
+  // 60초 폴링 (fallback)
+  usePolling(fetchCounts, 60000, isLoggedIn);
 
   return { notificationCount, messageCount };
 };
