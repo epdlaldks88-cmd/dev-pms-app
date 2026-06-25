@@ -15,6 +15,7 @@ import IssuesScreen from "./IssuesScreen";
 import QAScreen from "./QAScreen";
 import { useTheme } from "../theme/ThemeContext";
 import WorklogsScreen from "./WorklogsScreen";
+import WbsScreen from "./WbsScreen";
 
 const TABS = [
   { key: "projects", label: "프로젝트" },
@@ -24,6 +25,7 @@ const TABS = [
   { key: "issues", label: "이슈" },
   { key: "qa", label: "QA" },
   { key: "worklogs", label: "워크로그" },
+  { key: "wbs", label: "WBS" },
 ];
 
 export default function HomeScreen({ navigation }: any) {
@@ -154,6 +156,9 @@ export default function HomeScreen({ navigation }: any) {
         </View>
         <View key="worklogs" style={{ flex: 1 }}>
           <WorklogsScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View key="wbs" style={{ flex: 1 }}>
+          <WbsScreen navigation={navigation} showHeader={false} />
         </View>
       </PagerView>
     </View>
