@@ -8,15 +8,11 @@ import {
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 import Header from "../components/Header";
+import { formatDate } from "../utils/date";
 
 export default function NoticeDetailScreen({ route, navigation }: any) {
   const { notice } = route.params;
   const { primary, colors } = useTheme();
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
