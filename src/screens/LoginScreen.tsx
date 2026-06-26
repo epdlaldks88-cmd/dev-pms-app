@@ -22,7 +22,7 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("오류", "이메일과 비밀번호를 입력해주세요");
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요");
       return;
     }
     setLoading(true);
@@ -30,10 +30,30 @@ export default function LoginScreen({ navigation }: any) {
       await login(email, password);
       navigation.replace("MainTab");
     } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        JSON.stringify(error);
+      let message = "로그인에 실패했습니다";
+
+      if (!error?.response) {
+        // 네트워크 에러 (서버 응답 없음)
+        message = "서버에 연결할 수 없습니다.\n인터넷 연결을 확인해주세요";
+      } else if (error.response.status === 401) {
+        message = "이메일 또는 비밀번호가 올바르지 않습니다";
+      } else if (error.response.status === 404) {
+        message = "존재하지 않는 계정입니다";
+      } else if (error.response.status === 429) {
+        message = "로그인 시도가 너무 많습니다.\n잠시 후 다시 시도해주세요";
+      } else if (error.response.status >= 500) {
+        message =
+          "서버에 일시적인 문제가 발생했습니다.\n잠시 후 다시 시도해주세요";
+      } else {
+        // 백엔드가 보낸 메시지 사용 (배열일 수도 있음)
+        const serverMsg = error.response.data?.message;
+        if (Array.isArray(serverMsg)) {
+          message = serverMsg[0];
+        } else if (typeof serverMsg === "string") {
+          message = serverMsg;
+        }
+      }
+
       Alert.alert("로그인 실패", message);
     } finally {
       setLoading(false);
