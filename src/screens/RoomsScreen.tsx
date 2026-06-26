@@ -16,12 +16,16 @@ import { getMyRooms, createRoom } from "../api/rooms";
 import { getAllUsers } from "../api/users";
 import { useTheme } from "../theme/ThemeContext";
 import EmptyState from "../components/EmptyState";
+import { useFocusEffect } from "@react-navigation/native";
+import { useSocket } from "../hooks/useSocket";
 
 interface Room {
   id: string;
   name: string;
   members: { user: { id: string; name: string } }[];
   messages: { content: string; createdAt: string }[];
+  lastMessage?: { content: string; createdAt: string };
+  unreadCount?: number;
 }
 
 export default function RoomsScreen({ navigation }: any) {
@@ -35,8 +39,10 @@ export default function RoomsScreen({ navigation }: any) {
   const { primary, colors } = useTheme();
 
   const fetchRooms = async () => {
+    console.log("=== fetchRooms 호출됨 ==="); // 함수 진입 로그
     try {
       const data = await getMyRooms();
+      console.log("채팅방 데이터:", JSON.stringify(data));
       setRooms(data);
     } catch (error) {
       console.log("채팅방 조회 실패:", error);
@@ -64,6 +70,20 @@ export default function RoomsScreen({ navigation }: any) {
     fetchRooms();
     fetchUsers();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRooms();
+    }, []),
+  );
+
+  useSocket(
+    "globalRoomMessage",
+    () => {
+      fetchRooms();
+    },
+    [],
+  );
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) {
@@ -176,21 +196,44 @@ export default function RoomsScreen({ navigation }: any) {
               </View>
               <View style={styles.itemContent}>
                 <View style={styles.itemTop}>
-                  <Text style={[styles.roomName, { color: colors.text }]}>
-                    {item.name}
-                  </Text>
-                  {item.messages?.length > 0 && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    <Text
+                      style={[styles.roomName, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {item.name}
+                    </Text>
+                    {(item.unreadCount ?? 0) > 0 && (
+                      <View
+                        style={[
+                          styles.unreadBadge,
+                          { backgroundColor: primary },
+                        ]}
+                      >
+                        <Text style={styles.unreadBadgeText}>
+                          {(item.unreadCount ?? 0) > 99
+                            ? "99+"
+                            : item.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {item.lastMessage && (
                     <Text style={[styles.time, { color: colors.textMuted }]}>
-                      {formatDate(
-                        item.messages[item.messages.length - 1].createdAt,
-                      )}
+                      {formatDate(item.lastMessage.createdAt)}
                     </Text>
                   )}
                 </View>
                 <Text style={[styles.memberCount, { color: colors.textMuted }]}>
                   멤버 {item.members?.length || 0}명
                 </Text>
-                {item.messages?.length > 0 && (
+                {item.lastMessage && (
                   <Text
                     style={[
                       styles.lastMessage,
@@ -198,7 +241,7 @@ export default function RoomsScreen({ navigation }: any) {
                     ]}
                     numberOfLines={1}
                   >
-                    {item.messages[item.messages.length - 1].content}
+                    {item.lastMessage.content}
                   </Text>
                 )}
               </View>
@@ -381,4 +424,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   newButton: { fontSize: 14, fontWeight: "600" },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  unreadBadgeText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
 });

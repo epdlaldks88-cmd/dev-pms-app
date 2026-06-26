@@ -59,3 +59,8 @@ export const getRoomDetail = async (roomId: string) => {
   const response = await apiClient.get(`/rooms/${roomId}/messages`);
   return response.data.room;
 };
+
+export const getRoomsUnreadTotal = async () => {
+  const rooms = await getMyRooms();
+  return rooms.reduce((sum: number, r: any) => sum + (r.unreadCount || 0), 0);
+};

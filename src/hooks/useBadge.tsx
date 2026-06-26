@@ -1,9 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUnreadCount } from "../api/notifications";
 import { getUnreadCount as getMessageUnreadCount } from "../api/messages";
 import { useSocket } from "./useSocket";
 import { usePolling } from "./usePolling";
+import { getRoomsUnreadTotal } from "../api/rooms";
 
 interface BadgeContextType {
   notificationCount: number;
@@ -37,12 +44,13 @@ export const BadgeProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const [notiRes, msgRes] = await Promise.all([
+      const [notiRes, msgRes, roomUnread] = await Promise.all([
         getUnreadCount(),
         getMessageUnreadCount(),
+        getRoomsUnreadTotal(),
       ]);
       setNotificationCount(notiRes.count || 0);
-      setMessageCount(msgRes.count || 0);
+      setMessageCount((msgRes.count || 0) + roomUnread); // 쪽지 + 채팅 합산
     } catch (error) {
       // 오류 무시
     }
@@ -54,11 +62,14 @@ export const BadgeProvider = ({ children }: { children: ReactNode }) => {
 
   useSocket("notification", () => fetchCounts(), [isLoggedIn]);
   useSocket("directMessage", () => fetchCounts(), [isLoggedIn]);
+  useSocket("globalRoomMessage", () => fetchCounts(), [isLoggedIn]);
 
   usePolling(fetchCounts, 60000, isLoggedIn);
 
   return (
-    <BadgeContext.Provider value={{ notificationCount, messageCount, refresh: fetchCounts }}>
+    <BadgeContext.Provider
+      value={{ notificationCount, messageCount, refresh: fetchCounts }}
+    >
       {children}
     </BadgeContext.Provider>
   );
