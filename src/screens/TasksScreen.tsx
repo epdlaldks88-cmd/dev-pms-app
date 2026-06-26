@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -66,6 +66,112 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
       setLoadingMore(false);
     }
   };
+
+  // TaskItem 컴포넌트 분리 (memo로 최적화)
+  const TaskItem = memo(({ item, colors, primary, onPress }: any) => {
+    const getPriorityLabel = (priority: string) => {
+      const labels: Record<string, string> = {
+        URGENT: "긴급",
+        HIGH: "높음",
+        MEDIUM: "보통",
+        LOW: "낮음",
+      };
+      return labels[priority] || priority;
+    };
+
+    const getPriorityColor = (priority: string) => {
+      const c: Record<string, string> = {
+        URGENT: "#ef4444",
+        HIGH: "#f97316",
+        MEDIUM: primary,
+        LOW: "#94a3b8",
+      };
+      return c[priority] || "#94a3b8";
+    };
+
+    const getStatusLabel = (status: string) => {
+      const labels: Record<string, string> = {
+        TODO: "할일",
+        IN_PROGRESS: "진행중",
+        IN_REVIEW: "검토중",
+        DONE: "완료",
+        CANCELLED: "취소",
+      };
+      return labels[status] || status;
+    };
+
+    const isOverdue = (dateString?: string) => {
+      if (!dateString) return false;
+      return new Date(dateString) < new Date();
+    };
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.item,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+        ]}
+        onPress={() => onPress(item.id)}
+      >
+        <View style={styles.itemTop}>
+          <View style={styles.projectTag}>
+            <View
+              style={[
+                styles.projectDot,
+                { backgroundColor: item.project?.color || primary },
+              ]}
+            />
+            <Text style={[styles.projectName, { color: colors.textSecondary }]}>
+              {item.project?.name || "프로젝트 없음"}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.priorityBadge,
+              { backgroundColor: getPriorityColor(item.priority) + "20" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.priorityText,
+                { color: getPriorityColor(item.priority) },
+              ]}
+            >
+              {getPriorityLabel(item.priority)}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.taskTitle, { color: colors.text }]}>
+          {item.title}
+        </Text>
+        {item.description && (
+          <Text
+            style={[styles.description, { color: colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            {item.description}
+          </Text>
+        )}
+        <View style={styles.itemBottom}>
+          <Text style={[styles.statusText, { color: primary }]}>
+            {getStatusLabel(item.status)}
+          </Text>
+          {item.dueDate && (
+            <Text
+              style={[
+                styles.dueDate,
+                {
+                  color: isOverdue(item.dueDate) ? "#ef4444" : colors.textMuted,
+                },
+              ]}
+            >
+              마감 {formatDate(item.dueDate)}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -205,6 +311,10 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
           }
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -232,79 +342,14 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
             />
           }
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-              onPress={() =>
-                navigation.navigate("TaskDetail", { taskId: item.id })
+            <TaskItem
+              item={item}
+              colors={colors}
+              primary={primary}
+              onPress={(id: string) =>
+                navigation.navigate("TaskDetail", { taskId: id })
               }
-            >
-              <View style={styles.itemTop}>
-                <View style={styles.projectTag}>
-                  <View
-                    style={[
-                      styles.projectDot,
-                      { backgroundColor: item.project?.color || primary },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.projectName,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {item.project?.name || "프로젝트 없음"}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.priorityBadge,
-                    { backgroundColor: getPriorityColor(item.priority) + "20" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.priorityText,
-                      { color: getPriorityColor(item.priority) },
-                    ]}
-                  >
-                    {getPriorityLabel(item.priority)}
-                  </Text>
-                </View>
-              </View>
-              <Text style={[styles.taskTitle, { color: colors.text }]}>
-                {item.title}
-              </Text>
-              {item.description && (
-                <Text
-                  style={[styles.description, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {item.description}
-                </Text>
-              )}
-              <View style={styles.itemBottom}>
-                <Text style={[styles.statusText, { color: primary }]}>
-                  {getStatusLabel(item.status)}
-                </Text>
-                {item.dueDate && (
-                  <Text
-                    style={[
-                      styles.dueDate,
-                      {
-                        color: isOverdue(item.dueDate)
-                          ? "#ef4444"
-                          : colors.textMuted,
-                      },
-                    ]}
-                  >
-                    마감 {formatDate(item.dueDate)}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
+            />
           )}
         />
       )}
@@ -355,12 +400,16 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   emptyText: { fontSize: 16 },
-  filterBar: { borderBottomWidth: 1 },
+  filterBar: {
+    borderBottomWidth: 1,
+    height: 56, // 고정 높이
+    flexGrow: 0, // 늘어나지 않도록
+  },
   filterContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
     gap: 8,
     alignItems: "center",
+    height: 56, // 컨테이너도 고정
   },
   filterButton: {
     paddingHorizontal: 14,
