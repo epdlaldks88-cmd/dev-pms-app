@@ -42,3 +42,8 @@ export const updateMeeting = async (
   const response = await apiClient.patch(`/meetings/${meetingId}`, data);
   return response.data;
 };
+
+export const deleteMeeting = async (meetingId: string) => {
+  const response = await apiClient.delete(`/meetings/${meetingId}`);
+  return response.data;
+};

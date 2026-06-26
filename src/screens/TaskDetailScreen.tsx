@@ -27,6 +27,9 @@ import {
 } from "../utils/date";
 import Header from "../components/Header";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { deleteComment } from "../api/tasks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { deleteTask } from "../api/tasks";
 
 interface Task {
   id: string;
@@ -41,6 +44,7 @@ interface Task {
   comments: any[];
   subTasks?: { id: string; title: string; status: string }[];
   _count?: { subTasks: number };
+  projectId: string;
 }
 
 interface Comment {
@@ -77,6 +81,11 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   });
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDuePicker, setShowDuePicker] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("userId").then(setMyId);
+  }, []);
 
   const fetchTask = async () => {
     try {
@@ -137,6 +146,47 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     } catch (error) {
       Alert.alert("오류", "수정에 실패했습니다");
     }
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    Alert.alert("댓글 삭제", "이 댓글을 삭제하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteComment(taskId, commentId);
+            await fetchTask();
+          } catch (error) {
+            Alert.alert("오류", "댓글 삭제에 실패했습니다");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteTask = () => {
+    if (!task) return;
+    Alert.alert(
+      "태스크 삭제",
+      "이 태스크를 삭제하시겠습니까?\n삭제된 태스크는 복구할 수 없습니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteTask(task.projectId, taskId);
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert("오류", "태스크 삭제에 실패했습니다");
+            }
+          },
+        },
+      ],
+    );
   };
 
   const getPriorityColor = (priority: string) => {
@@ -539,6 +589,17 @@ export default function TaskDetailScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {editing && (
+            <TouchableOpacity
+              style={[styles.deleteButton, { borderColor: "#ef4444" }]}
+              onPress={handleDeleteTask}
+            >
+              <Text style={{ color: "#ef4444", fontWeight: "600" }}>
+                태스크 삭제
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <View
             style={[
               styles.section,
@@ -576,6 +637,16 @@ export default function TaskDetailScreen({ route, navigation }: any) {
                     >
                       {formatDate(c.createdAt)}
                     </Text>
+                    {(c.author as any)?.id === myId && (
+                      <TouchableOpacity
+                        onPress={() => handleDeleteComment(c.id)}
+                        style={{ marginLeft: "auto" }}
+                      >
+                        <Text style={{ color: "#ef4444", fontSize: 13 }}>
+                          삭제
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                   <Text
                     style={[
@@ -764,5 +835,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 4,
+  },
+  deleteButton: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
   },
 });

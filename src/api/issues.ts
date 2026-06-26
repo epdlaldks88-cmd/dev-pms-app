@@ -35,3 +35,10 @@ export const getAllIssues = async () => {
   const response = await apiClient.get("/issues");
   return response.data;
 };
+
+export const deleteIssue = async (projectId: string, issueId: string) => {
+  const response = await apiClient.delete(
+    `/projects/${projectId}/issues/${issueId}`,
+  );
+  return response.data;
+};

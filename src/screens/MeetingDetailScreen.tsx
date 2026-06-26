@@ -17,7 +17,12 @@ import {
 import Header from "../components/Header";
 import { TextInput, Alert } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { getMeetingDetail, updateMeeting } from "../api/meetings";
+import {
+  getMeetingDetail,
+  updateMeeting,
+  deleteMeeting,
+} from "../api/meetings";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Meeting {
   id: string;
@@ -50,6 +55,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [meetingDate, setMeetingDate] = useState("");
+  const [myId, setMyId] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!editForm.title.trim()) {
@@ -74,6 +80,24 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert("회의 삭제", "이 회의를 삭제하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteMeeting(meetingId);
+            navigation.goBack();
+          } catch (error) {
+            Alert.alert("오류", "회의 삭제에 실패했습니다");
+          }
+        },
+      },
+    ]);
   };
 
   const fetchMeeting = async () => {
@@ -106,6 +130,10 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
     fetchMeeting();
   }, []);
 
+  useEffect(() => {
+    AsyncStorage.getItem("userId").then(setMyId);
+  }, []);
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -128,19 +156,23 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
         title="회의 상세"
         onBack={() => navigation.goBack()}
         rightElement={
-          editing ? (
-            <TouchableOpacity onPress={handleSave} disabled={saving}>
-              {saving ? (
-                <ActivityIndicator size="small" color={primary} />
-              ) : (
-                <Text style={{ color: primary, fontWeight: "600" }}>저장</Text>
-              )}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setEditing(true)}>
-              <Text style={{ color: primary, fontWeight: "600" }}>편집</Text>
-            </TouchableOpacity>
-          )
+          (meeting.createdBy as any)?.id === myId ? (
+            editing ? (
+              <TouchableOpacity onPress={handleSave} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator size="small" color={primary} />
+                ) : (
+                  <Text style={{ color: primary, fontWeight: "600" }}>
+                    저장
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => setEditing(true)}>
+                <Text style={{ color: primary, fontWeight: "600" }}>편집</Text>
+              </TouchableOpacity>
+            )
+          ) : undefined
         }
       />
       <ScrollView style={styles.content}>
@@ -337,6 +369,17 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
             </Text>
           </View>
         )}
+
+        {editing && (meeting.createdBy as any)?.id === myId && (
+          <TouchableOpacity
+            style={[styles.deleteButton, { borderColor: "#ef4444" }]}
+            onPress={handleDelete}
+          >
+            <Text style={{ color: "#ef4444", fontWeight: "600" }}>
+              회의 삭제
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -400,5 +443,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     fontSize: 14,
+  },
+  deleteButton: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 1,
   },
 });

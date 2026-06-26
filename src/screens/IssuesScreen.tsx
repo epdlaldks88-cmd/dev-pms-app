@@ -23,7 +23,8 @@ import Header from "../components/Header";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
 import EmptyState from "../components/EmptyState";
-import { getAllIssues, updateIssue } from "../api/issues";
+import { getAllIssues, updateIssue, deleteIssue } from "../api/issues";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Issue {
   id: string;
@@ -43,6 +44,7 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
   const [error, setError] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
 
   const fetchIssues = async (showLoading: boolean = true) => {
     try {
@@ -73,6 +75,10 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
       fetchIssues(issues.length === 0); // items는 각 화면의 데이터 state명
     }, [issues.length]),
   );
+
+  useEffect(() => {
+    AsyncStorage.getItem("userId").then(setMyId);
+  }, []);
 
   const getRiskLabel = (risk: string) => {
     const labels: Record<string, string> = {
@@ -121,6 +127,24 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
     } catch (error) {
       Alert.alert("오류", "상태 변경에 실패했습니다");
     }
+  };
+
+  const handleDelete = (issue: Issue) => {
+    Alert.alert("이슈 삭제", "이 이슈를 삭제하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteIssue(issue.project!.id, issue.id);
+            await fetchIssues(false);
+          } catch (error) {
+            Alert.alert("오류", "삭제 권한이 없거나 실패했습니다");
+          }
+        },
+      },
+    ]);
   };
 
   const showStatusPicker = (issue: Issue) => {
@@ -183,90 +207,103 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={10}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.item,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                item.riskLevel === "CRITICAL" && {
-                  borderLeftWidth: 3,
-                  borderLeftColor: "#ef4444",
-                },
-              ]}
-            >
-              <View style={styles.itemTop}>
-                <View style={styles.badges}>
-                  <View
+          renderItem={({ item }) => {
+            const canDelete = (item.createdBy as any)?.id === myId;
+            return (
+              <TouchableOpacity
+                activeOpacity={canDelete ? 0.7 : 1}
+                onLongPress={() => canDelete && handleDelete(item)}
+                style={[
+                  styles.item,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                  item.riskLevel === "CRITICAL" && {
+                    borderLeftWidth: 3,
+                    borderLeftColor: "#ef4444",
+                  },
+                ]}
+              >
+                <View style={styles.itemTop}>
+                  <View style={styles.badges}>
+                    <View
+                      style={[
+                        styles.riskBadge,
+                        {
+                          backgroundColor: getRiskColor(item.riskLevel) + "20",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.riskText,
+                          { color: getRiskColor(item.riskLevel) },
+                        ]}
+                      >
+                        {getRiskLabel(item.riskLevel)}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.projectTag,
+                        { backgroundColor: item.project?.color + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.projectText,
+                          { color: item.project?.color },
+                        ]}
+                      >
+                        {item.project?.name}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
                     style={[
-                      styles.riskBadge,
-                      { backgroundColor: getRiskColor(item.riskLevel) + "20" },
+                      styles.statusBadge,
+                      { backgroundColor: getStatusColor(item.status) + "20" },
                     ]}
+                    onPress={() => showStatusPicker(item)}
                   >
                     <Text
                       style={[
-                        styles.riskText,
-                        { color: getRiskColor(item.riskLevel) },
+                        styles.statusText,
+                        { color: getStatusColor(item.status) },
                       ]}
                     >
-                      {getRiskLabel(item.riskLevel)}
+                      {getStatusLabel(item.status)} ▼
                     </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.projectTag,
-                      { backgroundColor: item.project?.color + "20" },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.projectText,
-                        { color: item.project?.color },
-                      ]}
-                    >
-                      {item.project?.name}
-                    </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusColor(item.status) + "20" },
-                  ]}
-                  onPress={() => showStatusPicker(item)}
-                >
+                <Text style={[styles.title, { color: colors.text }]}>
+                  {item.title}
+                </Text>
+                {item.description && (
                   <Text
                     style={[
-                      styles.statusText,
-                      { color: getStatusColor(item.status) },
+                      styles.description,
+                      { color: colors.textSecondary },
                     ]}
+                    numberOfLines={2}
                   >
-                    {getStatusLabel(item.status)} ▼
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {item.title}
-              </Text>
-              {item.description && (
-                <Text
-                  style={[styles.description, { color: colors.textSecondary }]}
-                  numberOfLines={2}
-                >
-                  {item.description}
-                </Text>
-              )}
-              <View style={styles.itemBottom}>
-                <Text style={[styles.meta, { color: colors.textMuted }]}>
-                  {item.createdBy?.name} · {formatDate(item.createdAt)}
-                </Text>
-                {item.assignee && (
-                  <Text style={[styles.assignee, { color: primary }]}>
-                    담당: {item.assignee.name}
+                    {item.description}
                   </Text>
                 )}
-              </View>
-            </View>
-          )}
+                <View style={styles.itemBottom}>
+                  <Text style={[styles.meta, { color: colors.textMuted }]}>
+                    {item.createdBy?.name} · {formatDate(item.createdAt)}
+                  </Text>
+                  {item.assignee && (
+                    <Text style={[styles.assignee, { color: primary }]}>
+                      담당: {item.assignee.name}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </View>

@@ -93,3 +93,17 @@ export const getProjectSteps = async (projectId: string) => {
   const response = await apiClient.get(`/projects/${projectId}/steps`);
   return response.data;
 };
+
+export const deleteComment = async (taskId: string, commentId: string) => {
+  const response = await apiClient.delete(
+    `/tasks/${taskId}/comments/${commentId}`,
+  );
+  return response.data;
+};
+
+export const deleteTask = async (projectId: string, taskId: string) => {
+  const response = await apiClient.delete(
+    `/projects/${projectId}/tasks/${taskId}`,
+  );
+  return response.data;
+};
