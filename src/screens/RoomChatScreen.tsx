@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getRoomMessages, sendRoomMessage, leaveRoom } from "../api/rooms";
 import { useTheme } from "../theme/ThemeContext";
 import { useRoomSocket } from "../hooks/useSocket";
 import {
@@ -26,6 +25,12 @@ import {
 } from "../utils/date";
 import { Keyboard, KeyboardEvent } from "react-native";
 import Header from "../components/Header";
+import {
+  getRoomMessages,
+  sendRoomMessage,
+  leaveRoom,
+  renameRoom,
+} from "../api/rooms";
 
 interface RoomMessage {
   id: string;
@@ -47,6 +52,9 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const { primary, colors } = useTheme();
   const [showMembers, setShowMembers] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
+  const [editingName, setEditingName] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [currentRoomName, setCurrentRoomName] = useState(roomName);
 
   useRoomSocket(
     roomId,
@@ -137,6 +145,21 @@ export default function RoomChatScreen({ route, navigation }: any) {
     ]);
   };
 
+  const handleRename = async () => {
+    if (!newRoomName.trim()) {
+      Alert.alert("오류", "채팅방 이름을 입력해주세요");
+      return;
+    }
+    try {
+      await renameRoom(roomId, newRoomName.trim());
+      setCurrentRoomName(newRoomName.trim());
+      setEditingName(false);
+      navigation.setParams({ roomName: newRoomName.trim() });
+    } catch (error) {
+      Alert.alert("오류", "이름 변경에 실패했습니다");
+    }
+  };
+
   const shouldShowDate = (index: number) => {
     if (index === 0) return true;
     const current = new Date(messages[index].createdAt);
@@ -160,7 +183,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Header
-          title={roomName}
+          title={currentRoomName}
           onBack={() => navigation.goBack()}
           rightElement={
             <TouchableOpacity onPress={() => setShowMembers(true)}>
@@ -328,6 +351,68 @@ export default function RoomChatScreen({ route, navigation }: any) {
                   <Text style={{ color: primary, fontSize: 16 }}>닫기</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* 채팅방 이름 변경 */}
+              <View style={{ marginBottom: 16 }}>
+                <Text
+                  style={[styles.modalLabel, { color: colors.textSecondary }]}
+                >
+                  채팅방 이름
+                </Text>
+                {editingName ? (
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TextInput
+                      style={[
+                        styles.renameInput,
+                        {
+                          color: colors.text,
+                          borderColor: colors.border,
+                          backgroundColor: colors.background,
+                        },
+                      ]}
+                      value={newRoomName}
+                      onChangeText={setNewRoomName}
+                      placeholder="새 이름"
+                      placeholderTextColor={colors.textMuted}
+                      autoFocus
+                    />
+                    <TouchableOpacity
+                      style={[
+                        styles.renameButton,
+                        { backgroundColor: primary },
+                      ]}
+                      onPress={handleRename}
+                    >
+                      <Text style={{ color: "#fff", fontWeight: "600" }}>
+                        저장
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={[styles.roomNameText, { color: colors.text }]}>
+                      {currentRoomName}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setEditingName(true);
+                        setNewRoomName(currentRoomName);
+                      }}
+                    >
+                      <Text style={{ color: primary, fontWeight: "600" }}>
+                        변경
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
               <ScrollView style={{ maxHeight: 300 }}>
                 {members.map((item) => (
                   <View
@@ -443,13 +528,13 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: "#00000080",
-    justifyContent: "flex-end",
+    justifyContent: "center", // flex-end → center
+    padding: 20,
   },
   modalContent: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderRadius: 16, // 상단만 둥글던 거 전체 둥글게
     padding: 20,
-    maxHeight: "70%",
+    maxHeight: "80%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -482,4 +567,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
+  modalLabel: { fontSize: 13, fontWeight: "600", marginBottom: 8 },
+  renameInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+  },
+  renameButton: {
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: "center",
+  },
+  roomNameText: { fontSize: 16, fontWeight: "600" },
 });
