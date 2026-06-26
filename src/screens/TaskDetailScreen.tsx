@@ -31,6 +31,7 @@ import { deleteComment } from "../api/tasks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { deleteTask } from "../api/tasks";
 import { getAllUsers } from "../api/users";
+import { RefreshControl } from "react-native";
 
 interface Task {
   id: string;
@@ -85,6 +86,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [myId, setMyId] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem("userId").then(setMyId);
@@ -232,6 +234,13 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const getCurrentStatus = () =>
     STATUS_OPTIONS.find((s) => s.value === task?.status) || STATUS_OPTIONS[0];
 
+  // 새로고침
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchTask();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -271,7 +280,12 @@ export default function TaskDetailScreen({ route, navigation }: any) {
           }
         />
 
-        <ScrollView style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
           {/* ───── 편집 모드 ───── */}
           {editing ? (
             <View

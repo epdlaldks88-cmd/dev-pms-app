@@ -19,6 +19,7 @@ import {
 } from "../utils/date";
 import Header from "../components/Header";
 import EmptyState from "../components/EmptyState";
+import { RefreshControl } from "react-native";
 
 interface Project {
   id: string;
@@ -47,30 +48,35 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tasks" | "members">("tasks");
   const { primary, colors } = useTheme();
+  const [refreshing, setRefreshing] = useState(false);
 
   const [taskFilter, setTaskFilter] = useState<
     "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE"
   >("ALL");
 
+  const fetchData = useCallback(
+    async (showLoading: boolean = true) => {
+      if (showLoading) setLoading(true);
+      try {
+        const [projectData, tasksData] = await Promise.all([
+          getProjectDetail(projectId),
+          getProjectTasks(projectId),
+        ]);
+        setProject(projectData);
+        setTasks(tasksData);
+      } catch (error) {
+        console.log("프로젝트 조회 실패:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [projectId],
+  );
+
   useFocusEffect(
     useCallback(() => {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          const [projectData, tasksData] = await Promise.all([
-            getProjectDetail(projectId),
-            getProjectTasks(projectId),
-          ]);
-          setProject(projectData);
-          setTasks(tasksData);
-        } catch (error) {
-          console.log("프로젝트 조회 실패:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchData();
-    }, [projectId]),
+      fetchData(tasks.length === 0);
+    }, [fetchData, tasks.length]),
   );
 
   const getStatusLabel = (status: string) => {
@@ -117,6 +123,13 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
       VIEWER: "뷰어",
     };
     return labels[role] || role;
+  };
+
+  // 새로고침
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
   };
 
   if (loading) {
@@ -312,6 +325,9 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
                   태스크가 없습니다
                 </Text>
               </View>
+            }
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
             renderItem={({ item }) => (
               <TouchableOpacity

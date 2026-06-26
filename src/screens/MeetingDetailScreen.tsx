@@ -23,6 +23,7 @@ import {
   deleteMeeting,
 } from "../api/meetings";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { RefreshControl } from "react-native";
 
 interface Meeting {
   id: string;
@@ -56,6 +57,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [meetingDate, setMeetingDate] = useState("");
   const [myId, setMyId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleSave = async () => {
     if (!editForm.title.trim()) {
@@ -134,6 +136,13 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
     AsyncStorage.getItem("userId").then(setMyId);
   }, []);
 
+  // 새로고침
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMeeting();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -175,7 +184,12 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
           ) : undefined
         }
       />
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View
           style={[
             styles.section,
