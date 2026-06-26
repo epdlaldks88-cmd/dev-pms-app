@@ -30,6 +30,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { deleteComment } from "../api/tasks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { deleteTask } from "../api/tasks";
+import { getAllUsers } from "../api/users";
 
 interface Task {
   id: string;
@@ -82,6 +83,8 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDuePicker, setShowDuePicker] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
 
   useEffect(() => {
     AsyncStorage.getItem("userId").then(setMyId);
@@ -96,8 +99,10 @@ export default function TaskDetailScreen({ route, navigation }: any) {
         title: data.title || "",
         description: data.description || "",
         startDate: data.startDate ? data.startDate.split("T")[0] : "",
-        dueDate: data.dueDate ? formatDate(data.dueDate) : "",
+        dueDate: data.dueDate ? data.dueDate.split("T")[0] : "",
       });
+      // 현재 담당자 ID 목록 초기화
+      setSelectedAssignees(data.assignees?.map((a: any) => a.user.id) || []);
     } catch (error) {
       console.log("태스크 조회 실패:", error);
     } finally {
@@ -107,6 +112,12 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
   useEffect(() => {
     fetchTask();
+  }, []);
+
+  useEffect(() => {
+    getAllUsers()
+      .then(setUsers)
+      .catch(() => {});
   }, []);
 
   const handleStatusChange = async (status: string) => {
@@ -135,11 +146,12 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 
   const handleSave = async () => {
     try {
-      await updateTask(taskId, {
+      await updateTask(task!.projectId, taskId, {
         title: editForm.title,
         description: editForm.description,
         startDate: editForm.startDate || undefined,
         dueDate: editForm.dueDate || undefined,
+        assigneeIds: selectedAssignees,
       });
       setEditing(false);
       await fetchTask();
@@ -186,6 +198,14 @@ export default function TaskDetailScreen({ route, navigation }: any) {
           },
         },
       ],
+    );
+  };
+
+  const toggleAssignee = (userId: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
@@ -241,149 +261,259 @@ export default function TaskDetailScreen({ route, navigation }: any) {
           title="태스크 상세"
           onBack={() => navigation.goBack()}
           rightElement={
-            editing ? (
-              <TouchableOpacity onPress={handleSave}>
-                <Text style={{ color: primary, fontWeight: "600" }}>저장</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={() => setEditing(true)}>
-                <Text style={{ color: primary, fontWeight: "600" }}>편집</Text>
-              </TouchableOpacity>
-            )
+            <TouchableOpacity
+              onPress={editing ? handleSave : () => setEditing(true)}
+            >
+              <Text style={{ color: primary, fontWeight: "600" }}>
+                {editing ? "저장" : "편집"}
+              </Text>
+            </TouchableOpacity>
           }
         />
 
         <ScrollView style={styles.content}>
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <View style={styles.projectTag}>
+          {/* ───── 편집 모드 ───── */}
+          {editing ? (
+            <View
+              style={[
+                styles.section,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+            >
+              {/* 프로젝트 */}
+              <View style={styles.projectTag}>
+                <View
+                  style={[
+                    styles.projectDot,
+                    { backgroundColor: task.project?.color || primary },
+                  ]}
+                />
+                <Text
+                  style={[styles.projectName, { color: colors.textSecondary }]}
+                >
+                  {task.project?.name}
+                </Text>
+              </View>
+
+              {/* 제목 */}
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: colors.textMuted, marginTop: 12, marginBottom: 4 },
+                ]}
+              >
+                제목
+              </Text>
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={editForm.title}
+                onChangeText={(v) => setEditForm({ ...editForm, title: v })}
+                placeholder="제목"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              {/* 설명 */}
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: colors.textMuted, marginTop: 12, marginBottom: 4 },
+                ]}
+              >
+                설명
+              </Text>
+              <TextInput
+                style={[
+                  styles.editTextArea,
+                  {
+                    color: colors.text,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={editForm.description}
+                onChangeText={(v) =>
+                  setEditForm({ ...editForm, description: v })
+                }
+                placeholder="설명"
+                placeholderTextColor={colors.textMuted}
+                multiline
+              />
+
+              {/* 시작일 */}
+              <TouchableOpacity
+                style={[
+                  styles.datePicker,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    marginTop: 12,
+                  },
+                ]}
+                onPress={() => setShowStartPicker(true)}
+              >
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                  시작일
+                </Text>
+                <Text
+                  style={{
+                    color: editForm.startDate ? colors.text : colors.textMuted,
+                  }}
+                >
+                  {editForm.startDate || "날짜 선택"}
+                </Text>
+              </TouchableOpacity>
+
+              {/* 마감일 */}
+              <TouchableOpacity
+                style={[
+                  styles.datePicker,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    marginTop: 8,
+                  },
+                ]}
+                onPress={() => setShowDuePicker(true)}
+              >
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
+                  마감일
+                </Text>
+                <Text
+                  style={{
+                    color: editForm.dueDate ? colors.text : colors.textMuted,
+                  }}
+                >
+                  {editForm.dueDate || "날짜 선택"}
+                </Text>
+              </TouchableOpacity>
+
+              {showStartPicker && (
+                <DateTimePicker
+                  value={
+                    editForm.startDate &&
+                    !isNaN(new Date(editForm.startDate).getTime())
+                      ? new Date(editForm.startDate)
+                      : new Date()
+                  }
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowStartPicker(false);
+                    if (date)
+                      setEditForm({
+                        ...editForm,
+                        startDate: date.toISOString().split("T")[0],
+                      });
+                  }}
+                />
+              )}
+              {showDuePicker && (
+                <DateTimePicker
+                  value={
+                    editForm.dueDate &&
+                    !isNaN(new Date(editForm.dueDate).getTime())
+                      ? new Date(editForm.dueDate)
+                      : new Date()
+                  }
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => {
+                    setShowDuePicker(false);
+                    if (date)
+                      setEditForm({
+                        ...editForm,
+                        dueDate: date.toISOString().split("T")[0],
+                      });
+                  }}
+                />
+              )}
+
+              {/* 담당자 */}
+              <Text
+                style={[
+                  styles.infoLabel,
+                  { color: colors.textMuted, marginTop: 12, marginBottom: 8 },
+                ]}
+              >
+                담당자
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {users.map((u) => (
+                  <TouchableOpacity
+                    key={u.id}
+                    style={[
+                      styles.assigneeChip,
+                      { borderColor: colors.border },
+                      selectedAssignees.includes(u.id) && {
+                        backgroundColor: primary,
+                        borderColor: primary,
+                      },
+                    ]}
+                    onPress={() => toggleAssignee(u.id)}
+                  >
+                    <Text
+                      style={{
+                        color: selectedAssignees.includes(u.id)
+                          ? "#fff"
+                          : colors.text,
+                        fontSize: 13,
+                      }}
+                    >
+                      {u.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* 삭제 버튼 */}
+              <TouchableOpacity
+                style={[
+                  styles.deleteButton,
+                  { borderColor: "#ef4444", marginTop: 16 },
+                ]}
+                onPress={handleDeleteTask}
+              >
+                <Text style={{ color: "#ef4444", fontWeight: "600" }}>
+                  태스크 삭제
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* ───── 보기 모드 ───── */
+            <>
               <View
                 style={[
-                  styles.projectDot,
-                  { backgroundColor: task.project?.color || primary },
+                  styles.section,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
                 ]}
-              />
-              <Text
-                style={[styles.projectName, { color: colors.textSecondary }]}
               >
-                {task.project?.name}
-              </Text>
-            </View>
-            {editing ? (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.datePicker,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: colors.background,
-                    },
-                  ]}
-                  onPress={() => setShowStartPicker(true)}
-                >
-                  <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
-                    시작일
-                  </Text>
+                <View style={styles.projectTag}>
+                  <View
+                    style={[
+                      styles.projectDot,
+                      { backgroundColor: task.project?.color || primary },
+                    ]}
+                  />
                   <Text
-                    style={{
-                      color: editForm.startDate
-                        ? colors.text
-                        : colors.textMuted,
-                    }}
+                    style={[
+                      styles.projectName,
+                      { color: colors.textSecondary },
+                    ]}
                   >
-                    {editForm.startDate || "날짜 선택"}
+                    {task.project?.name}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.datePicker,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: colors.background,
-                      marginTop: 8,
-                    },
-                  ]}
-                  onPress={() => setShowDuePicker(true)}
-                >
-                  <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
-                    마감일
-                  </Text>
-                  <Text
-                    style={{
-                      color: editForm.dueDate ? colors.text : colors.textMuted,
-                    }}
-                  >
-                    {editForm.dueDate || "날짜 선택"}
-                  </Text>
-                </TouchableOpacity>
+                </View>
 
-                {showStartPicker && (
-                  <DateTimePicker
-                    value={
-                      editForm.startDate
-                        ? new Date(editForm.startDate)
-                        : new Date()
-                    }
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowStartPicker(false);
-                      if (date)
-                        setEditForm({
-                          ...editForm,
-                          startDate: date.toISOString().split("T")[0],
-                        });
-                    }}
-                  />
-                )}
-                {showDuePicker && (
-                  <DateTimePicker
-                    value={
-                      editForm.dueDate &&
-                      !isNaN(new Date(editForm.dueDate).getTime())
-                        ? new Date(editForm.dueDate)
-                        : new Date()
-                    }
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowDuePicker(false);
-                      if (date)
-                        setEditForm({
-                          ...editForm,
-                          dueDate: date.toISOString().split("T")[0],
-                        });
-                    }}
-                  />
-                )}
-
-                {showStartPicker && (
-                  <DateTimePicker
-                    value={
-                      editForm.startDate &&
-                      !isNaN(new Date(editForm.startDate).getTime())
-                        ? new Date(editForm.startDate)
-                        : new Date()
-                    }
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowStartPicker(false);
-                      if (date)
-                        setEditForm({
-                          ...editForm,
-                          startDate: date.toISOString().split("T")[0],
-                        });
-                    }}
-                  />
-                )}
-              </>
-            ) : (
-              <>
                 <Text style={[styles.taskTitle, { color: colors.text }]}>
                   {task.title}
                 </Text>
@@ -397,313 +527,332 @@ export default function TaskDetailScreen({ route, navigation }: any) {
                     {task.description}
                   </Text>
                 )}
-              </>
-            )}
-          </View>
 
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <View style={styles.row}>
-              <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
-                  우선순위
-                </Text>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: getPriorityColor(task.priority) + "20" },
-                  ]}
-                >
-                  <Text
+                <View style={styles.row}>
+                  <View style={styles.infoItem}>
+                    <Text
+                      style={[styles.infoLabel, { color: colors.textMuted }]}
+                    >
+                      우선순위
+                    </Text>
+                    <View
+                      style={[
+                        styles.badge,
+                        {
+                          backgroundColor:
+                            getPriorityColor(task.priority) + "20",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          { color: getPriorityColor(task.priority) },
+                        ]}
+                      >
+                        {getPriorityLabel(task.priority)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text
+                      style={[styles.infoLabel, { color: colors.textMuted }]}
+                    >
+                      상태
+                    </Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.badge,
+                        { backgroundColor: currentStatus.color + "20" },
+                      ]}
+                      onPress={() => setShowStatusPicker(!showStatusPicker)}
+                    >
+                      <Text
+                        style={[
+                          styles.badgeText,
+                          { color: currentStatus.color },
+                        ]}
+                      >
+                        {currentStatus.label} ▼
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {showStatusPicker && (
+                  <View
                     style={[
-                      styles.badgeText,
-                      { color: getPriorityColor(task.priority) },
+                      styles.statusPicker,
+                      {
+                        backgroundColor: colors.background,
+                        borderColor: colors.border,
+                      },
                     ]}
                   >
-                    {getPriorityLabel(task.priority)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
-                  상태
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.badge,
-                    { backgroundColor: currentStatus.color + "20" },
-                  ]}
-                  onPress={() => setShowStatusPicker(!showStatusPicker)}
-                >
-                  <Text
-                    style={[styles.badgeText, { color: currentStatus.color }]}
-                  >
-                    {currentStatus.label} ▼
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+                    {STATUS_OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.statusOption,
+                          task.status === option.value && {
+                            backgroundColor: primary + "10",
+                          },
+                        ]}
+                        onPress={() => handleStatusChange(option.value)}
+                      >
+                        <View
+                          style={[
+                            styles.statusDot,
+                            { backgroundColor: option.color },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.statusOptionText,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
-            {showStatusPicker && (
+                {task.startDate && (
+                  <View style={styles.infoItem}>
+                    <Text
+                      style={[styles.infoLabel, { color: colors.textMuted }]}
+                    >
+                      시작일
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {formatDate(task.startDate)}
+                    </Text>
+                  </View>
+                )}
+                {task.dueDate && (
+                  <View style={styles.infoItem}>
+                    <Text
+                      style={[styles.infoLabel, { color: colors.textMuted }]}
+                    >
+                      마감일
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {formatDate(task.dueDate)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* 담당자 */}
+              {task.assignees?.length > 0 && (
+                <View
+                  style={[
+                    styles.section,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    담당자
+                  </Text>
+                  {task.assignees.map((a) => (
+                    <View key={a.user.id} style={styles.assignee}>
+                      <View
+                        style={[
+                          styles.assigneeAvatar,
+                          { backgroundColor: primary },
+                        ]}
+                      >
+                        <Text style={styles.assigneeAvatarText}>
+                          {a.user.name.charAt(0)}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[styles.assigneeName, { color: colors.text }]}
+                      >
+                        {a.user.name}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* 서브태스크 */}
+              {task.subTasks && task.subTasks.length > 0 && (
+                <View
+                  style={[
+                    styles.section,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    서브태스크 ({task.subTasks.length})
+                  </Text>
+                  {task.subTasks.map((sub) => (
+                    <TouchableOpacity
+                      key={sub.id}
+                      style={[styles.subTask, { borderColor: colors.border }]}
+                      onPress={() =>
+                        navigation.push("TaskDetail", { taskId: sub.id })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.subTaskDot,
+                          {
+                            backgroundColor:
+                              sub.status === "DONE" ? "#22c55e" : colors.border,
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.subTaskTitle,
+                          {
+                            color:
+                              sub.status === "DONE"
+                                ? colors.textMuted
+                                : colors.text,
+                          },
+                          sub.status === "DONE" && {
+                            textDecorationLine: "line-through",
+                          },
+                        ]}
+                      >
+                        {sub.title}
+                      </Text>
+                      <Text style={[styles.subTaskStatus, { color: primary }]}>
+                        ›
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* 댓글 */}
               <View
                 style={[
-                  styles.statusPicker,
+                  styles.section,
                   {
-                    backgroundColor: colors.background,
+                    backgroundColor: colors.surface,
                     borderColor: colors.border,
                   },
                 ]}
               >
-                {STATUS_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.statusOption,
-                      task.status === option.value && {
-                        backgroundColor: primary + "10",
-                      },
-                    ]}
-                    onPress={() => handleStatusChange(option.value)}
-                  >
-                    <View
-                      style={[
-                        styles.statusDot,
-                        { backgroundColor: option.color },
-                      ]}
-                    />
-                    <Text
-                      style={[styles.statusOptionText, { color: colors.text }]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {task.startDate && (
-              <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
-                  시작일
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  댓글 {comments.length}개
                 </Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {formatDate(task.startDate)}
-                </Text>
-              </View>
-            )}
-            {task.dueDate && (
-              <View style={styles.infoItem}>
-                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>
-                  마감일
-                </Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {formatDate(task.dueDate)}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {task.assignees?.length > 0 && (
-            <View
-              style={[
-                styles.section,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                담당자
-              </Text>
-              {task.assignees.map((a) => (
-                <View key={a.user.id} style={styles.assignee}>
-                  <View
-                    style={[
-                      styles.assigneeAvatar,
-                      { backgroundColor: primary },
-                    ]}
-                  >
-                    <Text style={styles.assigneeAvatarText}>
-                      {a.user.name.charAt(0)}
-                    </Text>
-                  </View>
-                  <Text style={[styles.assigneeName, { color: colors.text }]}>
-                    {a.user.name}
+                {comments.length === 0 ? (
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                    댓글이 없습니다
                   </Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* 서브태스크 */}
-          {task.subTasks && task.subTasks.length > 0 && (
-            <View
-              style={[
-                styles.section,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                서브태스크 ({task.subTasks.length})
-              </Text>
-              {task.subTasks.map((sub) => (
-                <TouchableOpacity
-                  key={sub.id}
-                  style={[styles.subTask, { borderColor: colors.border }]}
-                  onPress={() =>
-                    navigation.push("TaskDetail", { taskId: sub.id })
-                  }
-                >
-                  <View
-                    style={[
-                      styles.subTaskDot,
-                      {
-                        backgroundColor:
-                          sub.status === "DONE" ? "#22c55e" : colors.border,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.subTaskTitle,
-                      {
-                        color:
-                          sub.status === "DONE"
-                            ? colors.textMuted
-                            : colors.text,
-                      },
-                      sub.status === "DONE" && {
-                        textDecorationLine: "line-through",
-                      },
-                    ]}
-                  >
-                    {sub.title}
-                  </Text>
-                  <Text style={[styles.subTaskStatus, { color: primary }]}>
-                    ›
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {editing && (
-            <TouchableOpacity
-              style={[styles.deleteButton, { borderColor: "#ef4444" }]}
-              onPress={handleDeleteTask}
-            >
-              <Text style={{ color: "#ef4444", fontWeight: "600" }}>
-                태스크 삭제
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <View
-            style={[
-              styles.section,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              댓글 {comments.length}개
-            </Text>
-            {comments.length === 0 ? (
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                댓글이 없습니다
-              </Text>
-            ) : (
-              comments.map((c) => (
-                <View key={c.id} style={styles.comment}>
-                  <View style={styles.commentHeader}>
-                    <View
-                      style={[
-                        styles.commentAvatar,
-                        { backgroundColor: primary },
-                      ]}
-                    >
-                      <Text style={styles.commentAvatarText}>
-                        {c.author?.name?.charAt(0)}
+                ) : (
+                  comments.map((c) => (
+                    <View key={c.id} style={styles.comment}>
+                      <View style={styles.commentHeader}>
+                        <View
+                          style={[
+                            styles.commentAvatar,
+                            { backgroundColor: primary },
+                          ]}
+                        >
+                          <Text style={styles.commentAvatarText}>
+                            {c.author?.name?.charAt(0)}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.commentAuthor, { color: colors.text }]}
+                        >
+                          {c.author?.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.commentDate,
+                            { color: colors.textMuted },
+                          ]}
+                        >
+                          {formatDate(c.createdAt)}
+                        </Text>
+                        {(c.author as any)?.id === myId && (
+                          <TouchableOpacity
+                            onPress={() => handleDeleteComment(c.id)}
+                            style={{ marginLeft: "auto" }}
+                          >
+                            <Text style={{ color: "#ef4444", fontSize: 13 }}>
+                              삭제
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.commentContent,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {c.content}
                       </Text>
                     </View>
-                    <Text
-                      style={[styles.commentAuthor, { color: colors.text }]}
-                    >
-                      {c.author?.name}
-                    </Text>
-                    <Text
-                      style={[styles.commentDate, { color: colors.textMuted }]}
-                    >
-                      {formatDate(c.createdAt)}
-                    </Text>
-                    {(c.author as any)?.id === myId && (
-                      <TouchableOpacity
-                        onPress={() => handleDeleteComment(c.id)}
-                        style={{ marginLeft: "auto" }}
-                      >
-                        <Text style={{ color: "#ef4444", fontSize: 13 }}>
-                          삭제
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.commentContent,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {c.content}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
+                  ))
+                )}
+              </View>
+            </>
+          )}
+
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        <View
-          style={[
-            styles.commentInput,
-            {
-              backgroundColor: colors.surface,
-              borderTopColor: colors.border,
-              paddingBottom: insets.bottom + 12,
-            },
-          ]}
-        >
-          <TextInput
+        {/* 댓글 입력 (보기 모드일 때만) */}
+        {!editing && (
+          <View
             style={[
-              styles.input,
+              styles.commentInput,
               {
-                color: colors.text,
-                borderColor: colors.border,
-                backgroundColor: colors.background,
+                backgroundColor: colors.surface,
+                borderTopColor: colors.border,
+                paddingBottom: insets.bottom + 12,
               },
             ]}
-            placeholder="댓글 입력..."
-            placeholderTextColor={colors.textMuted}
-            value={comment}
-            onChangeText={setComment}
-            multiline
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { backgroundColor: primary },
-              !comment.trim() && { backgroundColor: primary + "60" },
-            ]}
-            onPress={handleAddComment}
-            disabled={submitting || !comment.trim()}
           >
-            {submitting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.sendButtonText}>전송</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color: colors.text,
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+              ]}
+              placeholder="댓글 입력..."
+              placeholderTextColor={colors.textMuted}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                { backgroundColor: primary },
+                !comment.trim() && { backgroundColor: primary + "60" },
+              ]}
+              onPress={handleAddComment}
+              disabled={submitting || !comment.trim()}
+            >
+              {submitting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.sendButtonText}>전송</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -843,5 +992,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     borderWidth: 1,
+  },
+  assigneeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  editInput: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 15 },
+  editTextArea: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: "top",
   },
 });

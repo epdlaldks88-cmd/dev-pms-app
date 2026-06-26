@@ -56,6 +56,7 @@ export const createComment = async (taskId: string, content: string) => {
 };
 
 export const updateTask = async (
+  projectId: string,
   taskId: string,
   data: {
     title?: string;
@@ -63,11 +64,11 @@ export const updateTask = async (
     startDate?: string;
     dueDate?: string;
     priority?: string;
+    assigneeIds?: string[];
   },
 ) => {
-  const task = await getTaskDetail(taskId);
   const response = await apiClient.patch(
-    `/projects/${task.projectId}/tasks/${taskId}`,
+    `/projects/${projectId}/tasks/${taskId}`,
     data,
   );
   return response.data;
