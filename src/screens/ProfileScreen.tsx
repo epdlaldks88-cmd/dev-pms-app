@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Switch,
   TextInput,
 } from "react-native";
 import { getMyProfile, updateProfile } from "../api/users";
@@ -37,8 +36,15 @@ export default function ProfileScreen({ navigation }: any) {
     department: "",
     phone: "",
   });
-  const { primary, isDark, colors, themeKey, setThemeKey, toggleDark } =
-    useTheme();
+  const {
+    primary,
+    isDark,
+    darkMode,
+    colors,
+    themeKey,
+    setThemeKey,
+    setDarkMode,
+  } = useTheme();
 
   const fetchProfile = async () => {
     try {
@@ -315,16 +321,40 @@ export default function ProfileScreen({ navigation }: any) {
           { backgroundColor: colors.surface, borderColor: colors.border },
         ]}
       >
-        <View style={styles.darkModeRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            다크모드
-          </Text>
-          <Switch
-            value={isDark}
-            onValueChange={toggleDark}
-            trackColor={{ false: colors.border, true: primary + "80" }}
-            thumbColor={isDark ? primary : colors.textMuted}
-          />
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          화면 모드
+        </Text>
+        <View style={styles.darkModeRow2}>
+          {[
+            { key: "system", label: "시스템" },
+            { key: "light", label: "라이트" },
+            { key: "dark", label: "다크" },
+          ].map((mode) => (
+            <TouchableOpacity
+              key={mode.key}
+              style={[
+                styles.darkModeButton,
+                { borderColor: colors.border },
+                darkMode === mode.key && {
+                  backgroundColor: primary,
+                  borderColor: primary,
+                },
+              ]}
+              onPress={() => setDarkMode(mode.key as any)}
+            >
+              <Text
+                style={[
+                  styles.darkModeButtonText,
+                  {
+                    color:
+                      darkMode === mode.key ? "#fff" : colors.textSecondary,
+                  },
+                ]}
+              >
+                {mode.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -425,4 +455,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoutText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  darkModeRow2: { flexDirection: "row", gap: 8 },
+  darkModeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  darkModeButtonText: { fontSize: 14, fontWeight: "600" },
 });
