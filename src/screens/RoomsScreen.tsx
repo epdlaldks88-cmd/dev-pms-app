@@ -147,6 +147,10 @@ export default function RoomsScreen({ navigation }: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[

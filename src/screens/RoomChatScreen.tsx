@@ -174,6 +174,10 @@ export default function RoomChatScreen({ route, navigation }: any) {
           data={messages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={15}
+          windowSize={10}
+          initialNumToRender={15}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: false })
           }

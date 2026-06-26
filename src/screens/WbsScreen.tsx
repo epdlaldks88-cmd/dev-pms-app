@@ -58,9 +58,10 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
   const [showModal, setShowModal] = useState(false);
   const { primary, colors } = useTheme();
 
-  const fetchItems = async () => {
+  const fetchItems = async (showLoading: boolean = true) => {
     try {
       setError(false);
+      if (showLoading) setLoading(true);
       const data = await getAllWbsItems();
       const sorted = data.sort((a: any, b: any) => a.order - b.order);
       setItems(sorted);
@@ -79,12 +80,8 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchItems();
-      };
-      fetch();
-    }, []),
+      fetchItems(items.length === 0); // items는 각 화면의 데이터 state명
+    }, [items.length]),
   );
 
   const handleUpdateProgress = async (item: WbsItem, progress: number) => {
@@ -172,6 +169,10 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => {
             const dday = getDday(item.endDate);
             const isOverdue =

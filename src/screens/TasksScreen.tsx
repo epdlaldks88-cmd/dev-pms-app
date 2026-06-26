@@ -48,9 +48,13 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchTasks = async (pageNum: number = 1) => {
+  const fetchTasks = async (
+    pageNum: number = 1,
+    showLoading: boolean = true,
+  ) => {
     try {
       setError(false);
+      if (showLoading) setLoading(true);
       const result = await getMyTasks(pageNum);
       if (pageNum === 1) {
         setTasks(result.data);
@@ -181,49 +185,10 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchTasks();
-      };
-      fetch();
-    }, []),
+      // 첫 로딩만 스켈레톤, 이후엔 백그라운드 갱신
+      fetchTasks(1, tasks.length === 0);
+    }, [tasks.length]),
   );
-
-  const getPriorityLabel = (priority: string) => {
-    const labels: Record<string, string> = {
-      URGENT: "긴급",
-      HIGH: "높음",
-      MEDIUM: "보통",
-      LOW: "낮음",
-    };
-    return labels[priority] || priority;
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const c: Record<string, string> = {
-      URGENT: "#ef4444",
-      HIGH: "#f97316",
-      MEDIUM: primary,
-      LOW: "#94a3b8",
-    };
-    return c[priority] || "#94a3b8";
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      TODO: "할일",
-      IN_PROGRESS: "진행중",
-      IN_REVIEW: "검토중",
-      DONE: "완료",
-      CANCELLED: "취소",
-    };
-    return labels[status] || status;
-  };
-
-  const isOverdue = (dateString?: string) => {
-    if (!dateString) return false;
-    return new Date(dateString) < new Date();
-  };
 
   if (loading) {
     return (

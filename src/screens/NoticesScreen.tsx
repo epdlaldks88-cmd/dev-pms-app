@@ -41,9 +41,10 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
   const { primary, colors } = useTheme();
   const [error, setError] = useState(false);
 
-  const fetchNotices = async () => {
+  const fetchNotices = async (showLoading: boolean = true) => {
     try {
       setError(false);
+      if (showLoading) setLoading(true);
       const data = await getAllNotices();
       // 고정 공지 먼저, 최신순 정렬
       const sorted = data.sort((a: any, b: any) => {
@@ -70,12 +71,8 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchNotices();
-      };
-      fetch();
-    }, []),
+      fetchNotices(notices.length === 0); // items는 각 화면의 데이터 state명
+    }, [notices.length]),
   );
 
   if (loading) {
@@ -114,6 +111,10 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[

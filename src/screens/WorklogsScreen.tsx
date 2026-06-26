@@ -47,9 +47,10 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
   const [error, setError] = useState(false);
   const { primary, colors } = useTheme();
 
-  const fetchWorklogs = async () => {
+  const fetchWorklogs = async (showLoading: boolean = true) => {
     try {
       setError(false);
+      if (showLoading) setLoading(true);
       const userId = await AsyncStorage.getItem("userId");
       const data = await getWorklogs(userId || undefined);
       setWorklogs(Array.isArray(data) ? data : data.worklogs || []);
@@ -69,12 +70,8 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchWorklogs();
-      };
-      fetch();
-    }, []),
+      fetchWorklogs(worklogs.length === 0); // items는 각 화면의 데이터 state명
+    }, [worklogs.length]),
   );
 
   const handleAcknowledge = async (id: string) => {
@@ -163,6 +160,10 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => (
             <View
               style={[

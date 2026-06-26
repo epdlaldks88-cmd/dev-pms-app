@@ -43,9 +43,10 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
   const { primary, colors } = useTheme();
   const [error, setError] = useState(false);
 
-  const fetchMeetings = async () => {
+  const fetchMeetings = async (showLoading: boolean = true) => {
     try {
       setError(false);
+      if (showLoading) setLoading(true);
       const data = await getMeetings();
       setMeetings(data);
     } catch (error) {
@@ -64,12 +65,8 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchMeetings();
-      };
-      fetch();
-    }, []),
+      fetchMeetings(meetings.length === 0); // items는 각 화면의 데이터 state명
+    }, [meetings.length]),
   );
 
   const formatDay = (dateString: string) => {
@@ -135,6 +132,10 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[

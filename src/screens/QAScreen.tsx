@@ -45,9 +45,10 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
   const { primary, colors } = useTheme();
   const [error, setError] = useState(false);
 
-  const fetchQA = async () => {
+  const fetchQA = async (showLoading: boolean = true) => {
     try {
       setError(false);
+      if (showLoading) setLoading(true);
       const data = await getQAList();
       setQaList(data);
     } catch (error) {
@@ -66,12 +67,8 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchQA();
-      };
-      fetch();
-    }, []),
+      fetchQA(qaList.length === 0); // items는 각 화면의 데이터 state명
+    }, [qaList.length]),
   );
 
   const getStatusLabel = (status: string, result?: string) => {
@@ -161,6 +158,10 @@ export default function QAScreen({ navigation, showHeader = true }: any) {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => (
             <View
               style={[

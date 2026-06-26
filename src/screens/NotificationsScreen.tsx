@@ -47,9 +47,10 @@ export default function NotificationsScreen({
   const { primary, colors } = useTheme();
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (showLoading: boolean = true) => {
     try {
       const data = await getNotifications();
+      if (showLoading) setLoading(true);
       setNotifications(data);
     } catch (error) {
       console.log("알림 조회 실패:", error);
@@ -126,12 +127,8 @@ export default function NotificationsScreen({
 
   useFocusEffect(
     useCallback(() => {
-      const fetch = async () => {
-        setLoading(true);
-        await fetchNotifications();
-      };
-      fetch();
-    }, []),
+      fetchNotifications(notifications.length === 0); // items는 각 화면의 데이터 state명
+    }, [notifications.length]),
   );
 
   const getTypeLabel = (type: string) => {
@@ -217,6 +214,10 @@ export default function NotificationsScreen({
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
