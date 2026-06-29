@@ -682,13 +682,13 @@ export default function TaskDetailScreen({ route, navigation }: any) {
                         ]}
                       >
                         <Text style={styles.assigneeAvatarText}>
-                          {a.user.name.charAt(0)}
+                          {a.user?.name?.charAt(0) || "?"}
                         </Text>
                       </View>
                       <Text
                         style={[styles.assigneeName, { color: colors.text }]}
                       >
-                        {a.user.name}
+                        {a.user?.name}
                       </Text>
                     </View>
                   ))}

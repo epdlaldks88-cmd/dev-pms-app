@@ -356,7 +356,7 @@ export default function CreateMeetingScreen({ navigation }: any) {
                 </View>
                 <View style={[styles.userAvatar, { backgroundColor: primary }]}>
                   <Text style={styles.userAvatarText}>
-                    {user.name.charAt(0)}
+                    {user.name?.charAt(0) || "?"}
                   </Text>
                 </View>
                 <Text style={[styles.userName, { color: colors.text }]}>

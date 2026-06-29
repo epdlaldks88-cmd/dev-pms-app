@@ -48,7 +48,7 @@ export default function NoticeDetailScreen({ route, navigation }: any) {
                 <Text
                   style={[styles.projectText, { color: notice.project.color }]}
                 >
-                  {notice.project.name}
+                  {notice.project?.name}
                 </Text>
               </View>
             )}

@@ -191,7 +191,7 @@ export default function RoomsScreen({ navigation }: any) {
                 style={[styles.roomIcon, { backgroundColor: primary + "20" }]}
               >
                 <Text style={[styles.roomIconText, { color: primary }]}>
-                  {item.name.charAt(0)}
+                  {item.name?.charAt(0) || "?"}
                 </Text>
               </View>
               <View style={styles.itemContent}>

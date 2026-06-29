@@ -193,7 +193,7 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
                         { color: colors.textSecondary },
                       ]}
                     >
-                      {item.project.name}
+                      {item.project?.name}
                     </Text>
                   </View>
                 )}

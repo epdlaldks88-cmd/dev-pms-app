@@ -205,7 +205,7 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
                             { color: item.project.color },
                           ]}
                         >
-                          {item.project.name}
+                          {item.project?.name}
                         </Text>
                       </View>
                     )}

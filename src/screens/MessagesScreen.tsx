@@ -121,13 +121,13 @@ export default function MessagesScreen({ navigation }: any) {
             >
               <View style={[styles.avatar, { backgroundColor: primary }]}>
                 <Text style={styles.avatarText}>
-                  {item.user.name.charAt(0)}
+                  {item.user?.name?.charAt(0) || "?"}
                 </Text>
               </View>
               <View style={styles.itemContent}>
                 <View style={styles.itemTop}>
                   <Text style={[styles.userName, { color: colors.text }]}>
-                    {item.user.name}
+                    {item.user?.name}
                   </Text>
                   <Text style={[styles.time, { color: colors.textMuted }]}>
                     {item.lastMessage

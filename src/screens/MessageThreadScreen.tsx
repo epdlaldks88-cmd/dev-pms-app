@@ -153,7 +153,9 @@ export default function MessageThreadScreen({ route, navigation }: any) {
             <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
           </TouchableOpacity>
           <View style={[styles.headerAvatar, { backgroundColor: primary }]}>
-            <Text style={styles.headerAvatarText}>{userName.charAt(0)}</Text>
+            <Text style={styles.headerAvatarText}>
+              {userName?.charAt(0) || "?"}
+            </Text>
           </View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             {userName}
@@ -210,7 +212,7 @@ export default function MessageThreadScreen({ route, navigation }: any) {
                   {!isMine && (
                     <View style={[styles.avatar, { backgroundColor: primary }]}>
                       <Text style={styles.avatarText}>
-                        {item.sender.name.charAt(0)}
+                        {item.sender?.name?.charAt(0) || "?"}
                       </Text>
                     </View>
                   )}

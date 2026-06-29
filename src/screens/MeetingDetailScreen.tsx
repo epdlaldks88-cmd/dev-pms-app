@@ -207,7 +207,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
               <Text
                 style={[styles.projectName, { color: colors.textSecondary }]}
               >
-                {meeting.project.name}
+                {meeting.project?.name}
               </Text>
             </View>
           )}

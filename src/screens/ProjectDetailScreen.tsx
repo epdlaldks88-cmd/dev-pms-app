@@ -398,7 +398,7 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
                           ]}
                         >
                           <Text style={styles.assigneeAvatarText}>
-                            {a.user.name.charAt(0)}
+                            {a.user?.name?.charAt(0) || "?"}
                           </Text>
                         </View>
                       ))}
@@ -426,11 +426,11 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
             >
               <View style={[styles.memberAvatar, { backgroundColor: primary }]}>
                 <Text style={styles.memberAvatarText}>
-                  {item.user.name.charAt(0)}
+                  {item.user?.name?.charAt(0) || "?"}
                 </Text>
               </View>
               <Text style={[styles.memberName, { color: colors.text }]}>
-                {item.user.name}
+                {item.user?.name}
               </Text>
               <View
                 style={[styles.roleBadge, { backgroundColor: primary + "20" }]}

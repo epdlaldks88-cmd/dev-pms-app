@@ -242,7 +242,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
                   {!isMine && (
                     <View style={[styles.avatar, { backgroundColor: primary }]}>
                       <Text style={styles.avatarText}>
-                        {item.sender.name.charAt(0)}
+                        {item.sender?.name?.charAt(0) || "?"}
                       </Text>
                     </View>
                   )}
@@ -254,7 +254,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {item.sender.name}
+                        {item.sender?.name}
                       </Text>
                     )}
                     <View
