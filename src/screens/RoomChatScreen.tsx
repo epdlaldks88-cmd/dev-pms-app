@@ -55,6 +55,7 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const [editingName, setEditingName] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [currentRoomName, setCurrentRoomName] = useState(roomName);
+  const [renaming, setRenaming] = useState(false);
 
   useRoomSocket(
     roomId,
@@ -150,6 +151,8 @@ export default function RoomChatScreen({ route, navigation }: any) {
       Alert.alert("오류", "채팅방 이름을 입력해주세요");
       return;
     }
+    if (renaming) return;
+    setRenaming(true);
     try {
       await renameRoom(roomId, newRoomName.trim());
       setCurrentRoomName(newRoomName.trim());
@@ -157,6 +160,8 @@ export default function RoomChatScreen({ route, navigation }: any) {
       navigation.setParams({ roomName: newRoomName.trim() });
     } catch (error) {
       Alert.alert("오류", "이름 변경에 실패했습니다");
+    } finally {
+      setRenaming(false);
     }
   };
 
@@ -380,8 +385,10 @@ export default function RoomChatScreen({ route, navigation }: any) {
                       style={[
                         styles.renameButton,
                         { backgroundColor: primary },
+                        renaming && { opacity: 0.6 },
                       ]}
                       onPress={handleRename}
+                      disabled={renaming}
                     >
                       <Text style={{ color: "#fff", fontWeight: "600" }}>
                         저장

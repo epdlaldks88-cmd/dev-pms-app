@@ -37,6 +37,7 @@ export default function RoomsScreen({ navigation }: any) {
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const { primary, colors } = useTheme();
+  const [creating, setCreating] = useState(false);
 
   const fetchRooms = async () => {
     console.log("=== fetchRooms 호출됨 ==="); // 함수 진입 로그
@@ -90,6 +91,8 @@ export default function RoomsScreen({ navigation }: any) {
       Alert.alert("오류", "채팅방 이름을 입력해주세요");
       return;
     }
+    if (creating) return; // 중복 방지
+    setCreating(true);
     try {
       await createRoom(roomName.trim(), selectedUsers);
       setShowCreate(false);
@@ -98,6 +101,8 @@ export default function RoomsScreen({ navigation }: any) {
       await fetchRooms();
     } catch (error) {
       Alert.alert("오류", "채팅방 생성에 실패했습니다");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -324,11 +329,16 @@ export default function RoomsScreen({ navigation }: any) {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: primary }]}
+                style={[
+                  styles.modalButton,
+                  { backgroundColor: primary },
+                  creating && { opacity: 0.6 },
+                ]}
                 onPress={handleCreateRoom}
+                disabled={creating}
               >
                 <Text style={[styles.modalButtonText, { color: "#fff" }]}>
-                  생성
+                  {creating ? "생성 중..." : "생성"}
                 </Text>
               </TouchableOpacity>
             </View>
