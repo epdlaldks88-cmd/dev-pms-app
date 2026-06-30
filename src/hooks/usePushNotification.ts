@@ -1,8 +1,14 @@
 import { useEffect, useRef } from "react";
+import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { useNavigation } from "@react-navigation/native";
 import { registerDeviceToken } from "../api/deviceToken";
+
+// FCM 토큰 캐싱 (logout 시 해제용)
+let cachedFcmToken: string | null = null;
+export const getCurrentFcmToken = () => cachedFcmToken;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -14,17 +20,38 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Expo Go 판별 (SenderId mismatch 방지용)
+const isExpoGo = Constants.appOwnership === "expo";
+
 export const usePushNotification = () => {
   const navigation = useNavigation<any>();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
+  const tokenListener = useRef<Notifications.Subscription | null>(null);
 
   const registerForPushNotifications = async () => {
+    // 실기기가 아니면 스킵 (에뮬레이터/시뮬레이터)
     if (!Device.isDevice) {
-      console.log("실기기에서만 푸시 알림이 동작합니다");
+      if (__DEV__) console.log("[push] not a physical device, skip");
       return;
     }
 
+    // Expo Go에서는 FCM 토큰 발급/등록 스킵 (SenderId mismatch 방지)
+    if (isExpoGo) {
+      if (__DEV__) console.log("[push] running in Expo Go, FCM not supported");
+      return;
+    }
+
+    // 안드로이드 알림 채널 설정 (Android 8.0+ 필수)
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
+    // 권한 요청
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -35,28 +62,49 @@ export const usePushNotification = () => {
     }
 
     if (finalStatus !== "granted") {
-      console.log("푸시 알림 권한이 거부됐습니다");
+      if (__DEV__) console.log("[push] permission denied");
       return;
     }
 
-    const token = await Notifications.getDevicePushTokenAsync();
-    await registerDeviceToken(token.data);
+    try {
+      const token = await Notifications.getDevicePushTokenAsync();
+      cachedFcmToken = token.data;
+      await registerDeviceToken(token.data);
+      if (__DEV__) console.log("[push] registered:", token.data.slice(0, 20));
+    } catch (e) {
+      if (__DEV__) console.log("[push] register failed", e);
+    }
   };
 
   useEffect(() => {
     registerForPushNotifications();
 
+    // 토큰 갱신 감지 (FCM이 새 토큰 발급할 때)
+    tokenListener.current = Notifications.addPushTokenListener(
+      async (token) => {
+        if (__DEV__) console.log("[push] token changed");
+        cachedFcmToken = token.data;
+        try {
+          await registerDeviceToken(token.data);
+        } catch (e) {
+          if (__DEV__) console.log("[push] re-register failed");
+        }
+      },
+    );
+
+    // 포그라운드 알림 수신
     notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        console.log("알림 수신:", notification);
+      Notifications.addNotificationReceivedListener(() => {
+        // 필요 시 처리. 로그는 가드.
+        if (__DEV__) console.log("[push] received");
       });
 
+    // 알림 탭 → 화면 이동
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const data = response.notification.request.content.data;
-        console.log("알림 탭:", data);
+        if (__DEV__) console.log("[push] tapped type:", data?.type);
 
-        // 알림 타입에 따라 화면 이동
         if (data?.type === "TASK_ASSIGNED" || data?.type === "TASK_UPDATED") {
           const link = data?.link as string;
           if (link) {
@@ -73,6 +121,7 @@ export const usePushNotification = () => {
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
+      tokenListener.current?.remove();
     };
   }, []);
 };
