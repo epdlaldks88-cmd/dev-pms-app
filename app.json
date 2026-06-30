@@ -31,6 +31,9 @@
         "projectId": "f6881496-e1e7-406a-9dcc-6f1e445cb73f"
       }
     },
-    "plugins": ["@react-native-community/datetimepicker"]
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-secure-store"
+    ]
   }
 }
