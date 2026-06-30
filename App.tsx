@@ -39,6 +39,12 @@ import CreateTaskScreen from "./src/screens/CreateTaskScreen";
 import CreateMeetingScreen from "./src/screens/CreateMeetingScreen";
 import CreateIssueScreen from "./src/screens/CreateIssueScreen";
 import { BadgeProvider } from "./src/hooks/useBadge";
+import { migrateTokensIfNeeded } from "./src/lib/storage";
+import { ErrorBoundary } from "./src/components/ErrorBoundary";
+import {
+  initSocketAppStateListener,
+  cleanupSocketAppStateListener,
+} from "./src/hooks/useSocket";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -51,6 +57,10 @@ function TabNavigator() {
 
   useEffect(() => {
     AsyncStorage.getItem("userId").then(setMyId);
+  }, []);
+
+  useEffect(() => {
+    migrateTokensIfNeeded();
   }, []);
 
   useGlobalSocket(myId);
@@ -168,11 +178,18 @@ function AppNavigator() {
 }
 
 export default function App() {
+  useEffect(() => {
+    initSocketAppStateListener();
+    return () => cleanupSocketAppStateListener();
+  }, []);
+
   return (
-    <ThemeProvider>
-      <BadgeProvider>
-        <AppNavigator />
-      </BadgeProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <BadgeProvider>
+          <AppNavigator />
+        </BadgeProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
