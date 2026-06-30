@@ -1,66 +1,105 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme/ThemeContext";
 
 interface EmptyStateProps {
-  icon?: string;
+  /** Ionicons 아이콘 이름 (예: "document-text-outline") */
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** 또는 emoji 한 글자 (icon 대신 사용) */
+  emoji?: string;
   title: string;
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-export default function EmptyState({
-  icon = "📭",
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  icon,
+  emoji,
   title,
   description,
   actionLabel,
   onAction,
-}: EmptyStateProps) {
-  const { primary, colors } = useTheme();
+}) => {
+  const { colors, primary } = useTheme();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+      {emoji ? (
+        <Text style={styles.emoji}>{emoji}</Text>
+      ) : icon ? (
+        <Ionicons
+          name={icon}
+          size={56}
+          color={colors.textMuted}
+          style={{ marginBottom: 16 }}
+        />
+      ) : (
+        <Ionicons
+          name="document-outline"
+          size={56}
+          color={colors.textMuted}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-      {description && (
-        <Text style={[styles.description, { color: colors.textMuted }]}>
+
+      {description ? (
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           {description}
         </Text>
-      )}
-      {actionLabel && onAction && (
+      ) : null}
+
+      {actionLabel && onAction ? (
         <TouchableOpacity
           style={[styles.button, { backgroundColor: primary }]}
           onPress={onAction}
+          activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>{actionLabel}</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 32,
-    minHeight: 300,
+    paddingHorizontal: 32,
+    paddingVertical: 48,
+    minHeight: 280,
   },
-  icon: { fontSize: 56, marginBottom: 16 },
+  emoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
   title: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 8,
     textAlign: "center",
+    marginBottom: 8,
   },
   description: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 19,
     marginBottom: 24,
   },
-  button: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
-  buttonText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  button: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 140,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 });
