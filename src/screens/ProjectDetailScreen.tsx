@@ -11,15 +11,11 @@ import {
 import { getProjectDetail, getProjectTasks } from "../api/projects";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
-import EmptyState from "../components/EmptyState";
 import { RefreshControl } from "react-native";
+import { ErrorView } from "../components/ErrorView";
+import { EmptyState } from "../components/EmptyState";
 
 interface Project {
   id: string;
@@ -49,6 +45,7 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
   const [activeTab, setActiveTab] = useState<"tasks" | "members">("tasks");
   const { primary, colors } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const [taskFilter, setTaskFilter] = useState<
     "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE"
@@ -56,16 +53,18 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
 
   const fetchData = useCallback(
     async (showLoading: boolean = true) => {
-      if (showLoading) setLoading(true);
       try {
+        setError(false);
+        if (showLoading) setLoading(true);
         const [projectData, tasksData] = await Promise.all([
           getProjectDetail(projectId),
           getProjectTasks(projectId),
         ]);
         setProject(projectData);
         setTasks(tasksData);
-      } catch (error) {
-        console.log("프로젝트 조회 실패:", error);
+      } catch (e) {
+        if (__DEV__) console.log("[ProjectDetail] fetch failed");
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -128,25 +127,45 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
   // 새로고침
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
+    await fetchData(false);
     setRefreshing(false);
   };
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="프로젝트" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="프로젝트" onBack={() => navigation.goBack()} />
+        <ErrorView onRetry={() => fetchData()} />
       </View>
     );
   }
 
   if (!project) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>프로젝트를 찾을 수 없습니다</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="프로젝트" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <Text style={{ color: colors.text }}>
+            프로젝트를 찾을 수 없습니다
+          </Text>
+        </View>
       </View>
     );
   }
+
+  const filteredTasks =
+    taskFilter === "ALL" ? tasks : tasks.filter((t) => t.status === taskFilter);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -316,15 +335,27 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
             ))}
           </ScrollView>
           <FlatList
-            data={tasks}
+            data={filteredTasks}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.list}
             ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                  태스크가 없습니다
-                </Text>
-              </View>
+              <EmptyState
+                icon={
+                  tasks.length === 0
+                    ? "checkmark-circle-outline"
+                    : "funnel-outline"
+                }
+                title={
+                  tasks.length === 0
+                    ? "태스크가 없습니다"
+                    : "해당 상태의 태스크가 없습니다"
+                }
+                description={
+                  tasks.length === 0
+                    ? "프로젝트에 첫 태스크를 추가해보세요."
+                    : "다른 필터를 선택해보세요."
+                }
+              />
             }
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -416,7 +447,16 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
         <FlatList
           data={project.members}
           keyExtractor={(item) => item.user.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={
+            (project.members?.length || 0) === 0 ? { flexGrow: 1 } : styles.list
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="people-outline"
+              title="멤버가 없습니다"
+              description="프로젝트에 멤버를 추가해보세요."
+            />
+          }
           renderItem={({ item }) => (
             <View
               style={[
@@ -450,13 +490,6 @@ export default function ProjectDetailScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: { fontSize: 16, width: 60 },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    flex: 1,
-    textAlign: "center",
-  },
   infoSection: { padding: 16, borderBottomWidth: 1 },
   infoTop: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   colorDot: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
@@ -522,13 +555,6 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 15, fontWeight: "600", flex: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
   roleText: { fontSize: 12, fontWeight: "600" },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 200,
-  },
-  emptyText: { fontSize: 16 },
   filterBar: { borderBottomWidth: 1, maxHeight: 52 },
   filterContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   filterButton: {

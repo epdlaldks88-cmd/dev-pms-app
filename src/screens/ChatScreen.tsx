@@ -49,7 +49,9 @@ export default function ChatScreen({ navigation }: any) {
               </Text>
               {tab.key === "messages" && messageCount > 0 && (
                 <View style={[styles.badge, { backgroundColor: primary }]}>
-                  <Text style={styles.badgeText}>{messageCount}</Text>
+                  <Text style={styles.badgeText}>
+                    {messageCount > 99 ? "99+" : messageCount}
+                  </Text>
                 </View>
               )}
             </View>
@@ -57,9 +59,24 @@ export default function ChatScreen({ navigation }: any) {
         ))}
       </View>
 
+      {/* 두 화면 다 마운트 → display로 전환 (스크롤/데이터 유지) */}
       <View style={{ flex: 1 }}>
-        {activeTab === "messages" && <MessagesScreen navigation={navigation} />}
-        {activeTab === "rooms" && <RoomsScreen navigation={navigation} />}
+        <View
+          style={[
+            styles.tabPanel,
+            { display: activeTab === "messages" ? "flex" : "none" },
+          ]}
+        >
+          <MessagesScreen navigation={navigation} showHeader={false} />
+        </View>
+        <View
+          style={[
+            styles.tabPanel,
+            { display: activeTab === "rooms" ? "flex" : "none" },
+          ]}
+        >
+          <RoomsScreen navigation={navigation} showHeader={false} />
+        </View>
       </View>
     </View>
   );
@@ -75,11 +92,13 @@ const styles = StyleSheet.create({
   tabContent: { flexDirection: "row", alignItems: "center", gap: 6 },
   tabText: { fontSize: 14, fontWeight: "600" },
   badge: {
-    width: 18,
+    minWidth: 18,
     height: 18,
     borderRadius: 9,
+    paddingHorizontal: 5,
     justifyContent: "center",
     alignItems: "center",
   },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
+  tabPanel: { flex: 1 },
 });

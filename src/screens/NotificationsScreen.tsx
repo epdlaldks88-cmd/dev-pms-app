@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import {
   getNotifications,
@@ -16,16 +14,11 @@ import {
 } from "../api/notifications";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ErrorView } from "../components/ErrorView";
 import { SkeletonList } from "../components/SkeletonItem";
-import EmptyState from "../components/EmptyState";
+import { EmptyState } from "../components/EmptyState";
 
 interface Notification {
   id: string;
@@ -46,14 +39,17 @@ export default function NotificationsScreen({
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [error, setError] = useState(false);
 
   const fetchNotifications = async (showLoading: boolean = true) => {
     try {
-      const data = await getNotifications();
+      setError(false);
       if (showLoading) setLoading(true);
+      const data = await getNotifications();
       setNotifications(data);
     } catch (error) {
-      console.log("알림 조회 실패:", error);
+      if (__DEV__) console.log("[NotificationsScreen] fetch failed");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -61,7 +57,7 @@ export default function NotificationsScreen({
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchNotifications();
+    await fetchNotifications(false);
     setRefreshing(false);
   }, []);
 
@@ -72,7 +68,7 @@ export default function NotificationsScreen({
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
     } catch (error) {
-      console.log("읽음 처리 실패:", error);
+      if (__DEV__) console.log("[Notifications] markAsRead failed");
     }
   };
 
@@ -81,7 +77,7 @@ export default function NotificationsScreen({
       await markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (error) {
-      console.log("전체 읽음 처리 실패:", error);
+      if (__DEV__) console.log("[Notifications] markAllAsRead failed");
     }
   };
 
@@ -92,8 +88,10 @@ export default function NotificationsScreen({
 
     // 메시지/멘션 → 쪽지 스레드로 이동
     if (item.link.includes("/messages?to=")) {
-      const userId = item.link.split("to=")[1];
-      navigation.navigate("MessageThread", { userId, userName: "쪽지" });
+      const userId = item.link.split("to=")[1]?.split("&")[0];
+      if (userId) {
+        navigation.navigate("MessageThread", { userId, userName: "쪽지" });
+      }
       return;
     }
 
@@ -143,11 +141,24 @@ export default function NotificationsScreen({
     return labels[type] || type;
   };
 
+  const displayed = showUnreadOnly
+    ? notifications.filter((n) => !n.isRead)
+    : notifications;
+
   if (loading) {
     return (
       <View style={[{ flex: 1 }, { backgroundColor: colors.background }]}>
         {showHeader && <Header title="알림" />}
         <SkeletonList count={5} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="알림" />}
+        <ErrorView onRetry={() => fetchNotifications()} />
       </View>
     );
   }
@@ -186,91 +197,71 @@ export default function NotificationsScreen({
         />
       )}
 
-      {notifications.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <FlatList
+        data={displayed}
+        contentContainerStyle={
+          displayed.length === 0 ? styles.emptyContainer : styles.list // ⭐ displayed
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="🔔"
-            title="알림이 없습니다"
+            icon="notifications-outline"
+            title={
+              showUnreadOnly ? "읽지 않은 알림이 없습니다" : "알림이 없습니다"
+            }
             description={
               showUnreadOnly
-                ? "읽지 않은 알림이 없어요"
-                : "새로운 알림이 없어요"
+                ? "모든 알림을 확인하셨어요."
+                : "새로운 알림이 도착하면 여기에 표시됩니다."
             }
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={
-            showUnreadOnly
-              ? notifications.filter((n) => !n.isRead)
-              : notifications
-          }
-          keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                !item.isRead && {
-                  borderLeftWidth: 3,
-                  borderLeftColor: primary,
-                  backgroundColor: primary + "10",
-                },
-              ]}
-              onPress={() => handleNotificationPress(item)}
-            >
-              <View style={styles.itemHeader}>
-                <Text style={[styles.typeLabel, { color: primary }]}>
-                  {getTypeLabel(item.type)}
-                </Text>
-                <Text style={[styles.date, { color: colors.textMuted }]}>
-                  {formatDate(item.createdAt)}
-                </Text>
-              </View>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {item.title}
+        }
+        keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.item,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              !item.isRead && {
+                borderLeftWidth: 3,
+                borderLeftColor: primary,
+                backgroundColor: primary + "10",
+              },
+            ]}
+            onPress={() => handleNotificationPress(item)}
+          >
+            <View style={styles.itemHeader}>
+              <Text style={[styles.typeLabel, { color: primary }]}>
+                {getTypeLabel(item.type)}
               </Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]}>
-                {item.message}
+              <Text style={[styles.date, { color: colors.textMuted }]}>
+                {formatDate(item.createdAt)}
               </Text>
-              {!item.isRead && (
-                <View
-                  style={[styles.unreadDot, { backgroundColor: primary }]}
-                />
-              )}
-            </TouchableOpacity>
-          )}
-        />
-      )}
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {item.title}
+            </Text>
+            <Text style={[styles.message, { color: colors.textSecondary }]}>
+              {item.message}
+            </Text>
+            {!item.isRead && (
+              <View style={[styles.unreadDot, { backgroundColor: primary }]} />
+            )}
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
-  markAllRead: { fontSize: 14 },
   item: {
     padding: 16,
     marginHorizontal: 16,
@@ -296,13 +287,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 400,
-  },
-  emptyText: { fontSize: 16 },
-  headerRight: { flexDirection: "row", gap: 12, alignItems: "center" },
-  filterBtn: { fontSize: 13, fontWeight: "600" },
+  emptyContainer: { flexGrow: 1, padding: 16 },
+  list: { padding: 16 },
 });

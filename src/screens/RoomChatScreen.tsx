@@ -31,6 +31,7 @@ import {
   leaveRoom,
   renameRoom,
 } from "../api/rooms";
+import { onSocketReconnect } from "../hooks/useSocket";
 
 interface RoomMessage {
   id: string;
@@ -57,13 +58,17 @@ export default function RoomChatScreen({ route, navigation }: any) {
   const [currentRoomName, setCurrentRoomName] = useState(roomName);
   const [renaming, setRenaming] = useState(false);
 
-  useRoomSocket(
-    roomId,
-    () => {
+  // 1) 실시간 메시지 수신 (기존)
+  useRoomSocket(roomId, () => {
+    fetchMessages();
+  });
+
+  // 2) 재연결 시 놓친 메시지 보정 (신규)
+  useEffect(() => {
+    return onSocketReconnect(() => {
       fetchMessages();
-    },
-    myId,
-  ); // myId 추가
+    });
+  }, [roomId]);
 
   useEffect(() => {
     const init = async () => {

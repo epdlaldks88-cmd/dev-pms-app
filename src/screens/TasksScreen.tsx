@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -12,17 +12,11 @@ import {
 import { getMyTasks } from "../api/tasks";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import ErrorView from "../components/ErrorView";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonList } from "../components/SkeletonItem";
-import EmptyState from "../components/EmptyState";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
 
 interface Task {
   id: string;
@@ -35,15 +29,23 @@ interface Task {
   startDate?: string;
 }
 
+type FilterType = "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
+
+const FILTER_LABELS: Record<FilterType, string> = {
+  ALL: "전체",
+  TODO: "할일",
+  IN_PROGRESS: "진행중",
+  IN_REVIEW: "검토중",
+  DONE: "완료",
+};
+
 export default function TasksScreen({ navigation, showHeader = true }: any) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
   const [error, setError] = useState(false);
-  const [filter, setFilter] = useState<
-    "ALL" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE"
-  >("ALL");
+  const [filter, setFilter] = useState<FilterType>("ALL");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -63,7 +65,7 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
       }
       setHasMore(result.hasMore);
       setPage(pageNum);
-    } catch (error) {
+    } catch (e) {
       setError(true);
     } finally {
       setLoading(false);
@@ -71,7 +73,6 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
     }
   };
 
-  // TaskItem 컴포넌트 분리 (memo로 최적화)
   const TaskItem = memo(({ item, colors, primary, onPress }: any) => {
     const getPriorityLabel = (priority: string) => {
       const labels: Record<string, string> = {
@@ -179,29 +180,57 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchTasks();
+    await fetchTasks(1, false);
     setRefreshing(false);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      // 첫 로딩만 스켈레톤, 이후엔 백그라운드 갱신
       fetchTasks(1, tasks.length === 0);
     }, [tasks.length]),
   );
 
+  // === 로딩 (Header 포함) ===
   if (loading) {
     return (
-      <View style={[{ flex: 1 }, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {showHeader && <Header title="내 태스크" />}
         <SkeletonList count={5} />
       </View>
     );
   }
 
+  // === 에러 (Header 포함) ===
   if (error) {
-    return <ErrorView onRetry={fetchTasks} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="내 태스크" />}
+        <ErrorView onRetry={() => fetchTasks(1)} />
+      </View>
+    );
   }
+
+  // === 필터 적용된 데이터 ===
+  const filteredTasks =
+    filter === "ALL" ? tasks : tasks.filter((t) => t.status === filter);
+
+  // === 필터별 빈 상태 메시지 ===
+  const getEmptyProps = () => {
+    if (tasks.length === 0) {
+      return {
+        icon: "checkmark-circle-outline" as const,
+        title: "배정된 태스크가 없습니다",
+        description: "새 태스크가 할당되면 여기에 표시됩니다.",
+      };
+    }
+    return {
+      icon: "funnel-outline" as const,
+      title: `'${FILTER_LABELS[filter]}' 상태의 태스크가 없습니다`,
+      description: "다른 필터를 선택해보세요.",
+    };
+  };
+
+  const emptyProps = getEmptyProps();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -215,6 +244,7 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
           }
         />
       )}
+
       {/* 필터 바 */}
       <ScrollView
         horizontal
@@ -225,117 +255,89 @@ export default function TasksScreen({ navigation, showHeader = true }: any) {
         ]}
         contentContainerStyle={styles.filterContent}
       >
-        {[
-          { key: "ALL", label: "전체" },
-          { key: "TODO", label: "할일" },
-          { key: "IN_PROGRESS", label: "진행중" },
-          { key: "IN_REVIEW", label: "검토중" },
-          { key: "DONE", label: "완료" },
-        ].map((f) => (
+        {(Object.keys(FILTER_LABELS) as FilterType[]).map((key) => (
           <TouchableOpacity
-            key={f.key}
+            key={key}
             style={[
               styles.filterButton,
               { borderColor: colors.border },
-              filter === f.key && {
+              filter === key && {
                 backgroundColor: primary,
                 borderColor: primary,
               },
             ]}
-            onPress={() => setFilter(f.key as any)}
+            onPress={() => setFilter(key)}
           >
             <Text
               numberOfLines={1}
               style={[
                 styles.filterText,
-                { color: filter === f.key ? "#fff" : colors.textSecondary },
+                { color: filter === key ? "#fff" : colors.textSecondary },
               ]}
             >
-              {f.label}
+              {FILTER_LABELS[key]}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
-      {tasks.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+
+      {/* 리스트 (Empty는 ListEmptyComponent로 일원화) */}
+      <FlatList
+        data={filteredTasks}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          filteredTasks.length === 0 ? styles.emptyContainer : styles.list
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        onEndReached={() => {
+          // 페이지네이션은 전체 필터일 때만 (다른 필터는 클라 사이드)
+          if (hasMore && !loadingMore && filter === "ALL") {
+            setLoadingMore(true);
+            fetchTasks(page + 1, false);
           }
-        >
+        }}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator
+              size="small"
+              color={primary}
+              style={{ marginVertical: 16 }}
+            />
+          ) : null
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="✅"
-            title="배정된 태스크가 없습니다"
-            description="아직 나에게 배정된 태스크가 없어요"
+            icon={emptyProps.icon}
+            title={emptyProps.title}
+            description={emptyProps.description}
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={
-            filter === "ALL" ? tasks : tasks.filter((t) => t.status === filter)
-          }
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          onEndReached={() => {
-            if (hasMore && !loadingMore) {
-              setLoadingMore(true);
-              fetchTasks(page + 1);
+        }
+        renderItem={({ item }) => (
+          <TaskItem
+            item={item}
+            colors={colors}
+            primary={primary}
+            onPress={(id: string) =>
+              navigation.navigate("TaskDetail", { taskId: id })
             }
-          }}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator
-                size="small"
-                color={primary}
-                style={{ marginVertical: 16 }}
-              />
-            ) : null
-          }
-          ListEmptyComponent={
-            <EmptyState
-              icon="✅"
-              title="배정된 태스크가 없습니다"
-              description="아직 나에게 배정된 태스크가 없어요"
-            />
-          }
-          renderItem={({ item }) => (
-            <TaskItem
-              item={item}
-              colors={colors}
-              primary={primary}
-              onPress={(id: string) =>
-                navigation.navigate("TaskDetail", { taskId: id })
-              }
-            />
-          )}
-        />
-      )}
+          />
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
-  headerCount: { fontSize: 14 },
   list: { padding: 16 },
+  emptyContainer: { flexGrow: 1, padding: 16 },
   item: { borderRadius: 8, padding: 16, marginBottom: 8, borderWidth: 1 },
   itemTop: {
     flexDirection: "row",
@@ -358,30 +360,23 @@ const styles = StyleSheet.create({
   },
   statusText: { fontSize: 12, fontWeight: "600" },
   dueDate: { fontSize: 12 },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 400,
-  },
-  emptyText: { fontSize: 16 },
   filterBar: {
     borderBottomWidth: 1,
-    height: 56, // 고정 높이
-    flexGrow: 0, // 늘어나지 않도록
+    height: 56,
+    flexGrow: 0,
   },
   filterContent: {
     paddingHorizontal: 16,
     gap: 8,
     alignItems: "center",
-    height: 56, // 컨테이너도 고정
+    height: 56,
   },
   filterButton: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    flexShrink: 0, // 찌그러짐 방지
+    flexShrink: 0,
   },
   filterText: { fontSize: 13, fontWeight: "500", flexShrink: 0 },
 });

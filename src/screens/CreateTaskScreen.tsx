@@ -13,9 +13,10 @@ import { useTheme } from "../theme/ThemeContext";
 import Header from "../components/Header";
 import { createTask, getProjectSteps } from "../api/tasks";
 import { getProjects } from "../api/projects";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { KeyboardAvoidingView, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { userStorage } from "../lib/storage";
+import { ErrorView } from "../components/ErrorView";
 
 const PRIORITIES = [
   { key: "LOW", label: "낮음", color: "#94a3b8" },
@@ -40,42 +41,27 @@ export default function CreateTaskScreen({ navigation }: any) {
   const [myId, setMyId] = useState<string | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDuePicker, setShowDuePicker] = useState(false);
+  const [error, setError] = useState(false);
+
+  // useEffect 2개 → 1개로 통합
+  const init = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const data = await getProjects();
+      setProjects(data);
+      if (data.length > 0) setProjectId(data[0].id);
+    } catch (e) {
+      if (__DEV__) console.log("[CreateTask] init failed");
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    AsyncStorage.getItem("userId").then(setMyId);
+    init();
   }, []);
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      setLoading(true);
-      try {
-        const data = await getProjects();
-        setProjects(data);
-        if (data.length > 0) {
-          setProjectId(data[0].id);
-        }
-      } catch (error) {
-        console.log("프로젝트 조회 실패:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
-  }, []);
-
-  useEffect(() => {
-    if (!projectId) return;
-    const fetchSteps = async () => {
-      try {
-        const data = await getProjectSteps(projectId);
-        setSteps(data);
-        if (data.length > 0) setStepId(data[0].id);
-      } catch (error) {
-        console.log("스텝 조회 실패:", error);
-      }
-    };
-    fetchSteps();
-  }, [projectId]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -101,6 +87,7 @@ export default function CreateTaskScreen({ navigation }: any) {
         { text: "확인", onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
+      if (__DEV__) console.log("[CreateTask] save failed");
       Alert.alert("오류", "태스크 생성에 실패했습니다");
     } finally {
       setSaving(false);
@@ -109,8 +96,20 @@ export default function CreateTaskScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="태스크 생성" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="태스크 생성" onBack={() => navigation.goBack()} />
+        <ErrorView onRetry={init} />
       </View>
     );
   }
@@ -423,6 +422,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
-    fontSize: 14,
   },
 });

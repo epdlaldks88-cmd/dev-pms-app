@@ -6,23 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { getMeetings } from "../api/meetings";
 import { useTheme } from "../theme/ThemeContext";
-import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
 import Header from "../components/Header";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
 import { SkeletonList } from "../components/SkeletonItem";
-import EmptyState from "../components/EmptyState";
 
 interface Meeting {
   id: string;
@@ -50,7 +41,7 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
       const data = await getMeetings();
       setMeetings(data);
     } catch (error) {
-      console.log("회의 조회 실패:", error);
+      if (__DEV__) console.log("[MeetingsScreen] fetch failed");
       setError(true);
     } finally {
       setLoading(false);
@@ -59,7 +50,7 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchMeetings();
+    await fetchMeetings(false);
     setRefreshing(false);
   }, []);
 
@@ -96,7 +87,12 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
   }
 
   if (error) {
-    return <ErrorView onRetry={fetchMeetings} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="회의" />}
+        <ErrorView onRetry={() => fetchMeetings()} />
+      </View>
+    );
   }
 
   return (
@@ -111,139 +107,115 @@ export default function MeetingsScreen({ navigation, showHeader = true }: any) {
           }
         />
       )}
-      {meetings.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <FlatList
+        data={meetings}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          meetings.length === 0 ? styles.emptyContainer : styles.list
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="📅"
+            icon="calendar-outline"
             title="회의가 없습니다"
             description="예정된 회의가 없어요"
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={meetings}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                isPast(item.meetingDate) && styles.pastItem,
-              ]}
-              onPress={() =>
-                navigation.navigate("MeetingDetail", { meetingId: item.id })
-              }
-            >
-              <View style={styles.dateBox}>
-                <Text style={[styles.dateDay, { color: colors.textMuted }]}>
-                  {formatDay(item.meetingDate)}
-                </Text>
-                <Text style={[styles.dateNum, { color: colors.text }]}>
-                  {new Date(item.meetingDate).getDate()}
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.item,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              isPast(item.meetingDate) && styles.pastItem,
+            ]}
+            onPress={() =>
+              navigation.navigate("MeetingDetail", { meetingId: item.id })
+            }
+          >
+            <View style={styles.dateBox}>
+              <Text style={[styles.dateDay, { color: colors.textMuted }]}>
+                {formatDay(item.meetingDate)}
+              </Text>
+              <Text style={[styles.dateNum, { color: colors.text }]}>
+                {new Date(item.meetingDate).getDate()}
+              </Text>
+              {isToday(item.meetingDate) && (
+                <View style={[styles.todayDot, { backgroundColor: primary }]} />
+              )}
+            </View>
+            <View
+              style={[styles.divider, { backgroundColor: colors.border }]}
+            />
+            <View style={styles.itemContent}>
+              <View style={styles.itemTop}>
+                <Text
+                  style={[styles.meetingTitle, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {item.title}
                 </Text>
                 {isToday(item.meetingDate) && (
                   <View
-                    style={[styles.todayDot, { backgroundColor: primary }]}
-                  />
-                )}
-              </View>
-              <View
-                style={[styles.divider, { backgroundColor: colors.border }]}
-              />
-              <View style={styles.itemContent}>
-                <View style={styles.itemTop}>
-                  <Text
-                    style={[styles.meetingTitle, { color: colors.text }]}
-                    numberOfLines={1}
+                    style={[styles.todayBadge, { backgroundColor: primary }]}
                   >
-                    {item.title}
-                  </Text>
-                  {isToday(item.meetingDate) && (
-                    <View
-                      style={[styles.todayBadge, { backgroundColor: primary }]}
-                    >
-                      <Text style={styles.todayText}>오늘</Text>
-                    </View>
-                  )}
-                </View>
-                {item.project && (
-                  <View style={styles.projectTag}>
-                    <View
-                      style={[
-                        styles.projectDot,
-                        { backgroundColor: item.project.color || primary },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.projectName,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {item.project?.name}
-                    </Text>
+                    <Text style={styles.todayText}>오늘</Text>
                   </View>
                 )}
-                <View style={styles.itemBottom}>
-                  {item.startTime && (
-                    <Text
-                      style={[styles.time, { color: colors.textSecondary }]}
-                    >
-                      🕐 {item.startTime}
-                      {item.endTime ? ` ~ ${item.endTime}` : ""}
-                    </Text>
-                  )}
-                  {item.location && (
-                    <Text
-                      style={[styles.location, { color: colors.textSecondary }]}
-                    >
-                      📍 {item.location}
-                    </Text>
-                  )}
+              </View>
+              {item.project && (
+                <View style={styles.projectTag}>
+                  <View
+                    style={[
+                      styles.projectDot,
+                      { backgroundColor: item.project.color || primary },
+                    ]}
+                  />
                   <Text
                     style={[
-                      styles.participants,
+                      styles.projectName,
                       { color: colors.textSecondary },
                     ]}
                   >
-                    👥 {item.participants?.length || 0}명
+                    {item.project?.name}
                   </Text>
                 </View>
+              )}
+              <View style={styles.itemBottom}>
+                {item.startTime && (
+                  <Text style={[styles.time, { color: colors.textSecondary }]}>
+                    🕐 {item.startTime}
+                    {item.endTime ? ` ~ ${item.endTime}` : ""}
+                  </Text>
+                )}
+                {item.location && (
+                  <Text
+                    style={[styles.location, { color: colors.textSecondary }]}
+                  >
+                    📍 {item.location}
+                  </Text>
+                )}
+                <Text
+                  style={[styles.participants, { color: colors.textSecondary }]}
+                >
+                  👥 {item.participants?.length || 0}명
+                </Text>
               </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+            </View>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
-  headerCount: { fontSize: 14 },
   list: { padding: 16 },
   item: {
     borderRadius: 8,
@@ -281,11 +253,5 @@ const styles = StyleSheet.create({
   time: { fontSize: 12 },
   location: { fontSize: 12 },
   participants: { fontSize: 12 },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 400,
-  },
-  emptyText: { fontSize: 16 },
+  emptyContainer: { flexGrow: 1, padding: 16 },
 });

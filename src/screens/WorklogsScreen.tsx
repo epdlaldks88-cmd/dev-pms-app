@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,25 +6,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
-  ScrollView,
   Alert,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getWorklogs, acknowledgeWorklog } from "../api/worklogs";
 import { useTheme } from "../theme/ThemeContext";
-import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
 import { SkeletonList } from "../components/SkeletonItem";
-import EmptyState from "../components/EmptyState";
+import { userStorage } from "../lib/storage";
 
 interface Worklog {
   id: string;
@@ -51,11 +43,11 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
     try {
       setError(false);
       if (showLoading) setLoading(true);
-      const userId = await AsyncStorage.getItem("userId");
+      const userId = await userStorage.getUserId();
       const data = await getWorklogs(userId || undefined);
       setWorklogs(Array.isArray(data) ? data : data.worklogs || []);
     } catch (e) {
-      console.log("워크로그 조회 실패:", e);
+      if (__DEV__) console.log("[WorklogsScreen] fetch failed");
       setError(true);
     } finally {
       setLoading(false);
@@ -64,7 +56,7 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchWorklogs();
+    await fetchWorklogs(false);
     setRefreshing(false);
   }, []);
 
@@ -82,7 +74,7 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
         onPress: async () => {
           try {
             await acknowledgeWorklog(id);
-            await fetchWorklogs();
+            await fetchWorklogs(false);
           } catch (e) {
             Alert.alert("오류", "처리에 실패했습니다");
           }
@@ -123,7 +115,12 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
   }
 
   if (error) {
-    return <ErrorView onRetry={fetchWorklogs} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="워크로그" />}
+        <ErrorView onRetry={() => fetchWorklogs()} />
+      </View>
+    );
   }
 
   return (
@@ -139,131 +136,115 @@ export default function WorklogsScreen({ navigation, showHeader = true }: any) {
         />
       )}
 
-      {worklogs.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <FlatList
+        data={worklogs}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          worklogs.length === 0 ? styles.emptyContainer : styles.list
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="📋"
+            icon="book-outline"
             title="워크로그가 없습니다"
             description="등록된 워크로그가 없어요"
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={worklogs}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.item,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                !item.isAcknowledged && {
-                  borderLeftWidth: 3,
-                  borderLeftColor: primary,
-                },
-              ]}
-            >
-              <View style={styles.itemTop}>
-                <View style={styles.leftInfo}>
-                  {item.srNumber && (
-                    <Text style={[styles.srNumber, { color: primary }]}>
-                      {item.srNumber}
-                    </Text>
-                  )}
-                  <View
-                    style={[
-                      styles.stageBadge,
-                      { backgroundColor: getStageColor(item.stage) + "20" },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.stageText,
-                        { color: getStageColor(item.stage) },
-                      ]}
-                    >
-                      {getStageLabel(item.stage)}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[styles.hours, { color: colors.textMuted }]}>
-                  {item.hours}h
-                </Text>
-              </View>
-
-              {item.taskTitle && (
-                <Text style={[styles.taskTitle, { color: colors.text }]}>
-                  {item.taskTitle}
-                </Text>
-              )}
-              {item.projectName && (
-                <Text
-                  style={[styles.projectName, { color: colors.textSecondary }]}
-                >
-                  {item.projectName}
-                </Text>
-              )}
-              {item.description && (
-                <Text
-                  style={[styles.description, { color: colors.textSecondary }]}
-                  numberOfLines={2}
-                >
-                  {item.description}
-                </Text>
-              )}
-
-              <View style={styles.itemBottom}>
-                <Text style={[styles.date, { color: colors.textMuted }]}>
-                  {item.startDate
-                    ? `${formatDate(item.startDate)} ~ ${item.endDate ? formatDate(item.endDate) : "미정"}`
-                    : formatDate(item.workDate)}
-                </Text>
-                {!item.isAcknowledged && (
-                  <TouchableOpacity
-                    style={[styles.ackButton, { backgroundColor: primary }]}
-                    onPress={() => handleAcknowledge(item.id)}
-                  >
-                    <Text style={styles.ackButtonText}>확인</Text>
-                  </TouchableOpacity>
-                )}
-                {item.isAcknowledged && (
-                  <Text style={[styles.ackDone, { color: "#22c55e" }]}>
-                    ✓ 확인완료
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.item,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              !item.isAcknowledged && {
+                borderLeftWidth: 3,
+                borderLeftColor: primary,
+              },
+            ]}
+          >
+            <View style={styles.itemTop}>
+              <View style={styles.leftInfo}>
+                {item.srNumber && (
+                  <Text style={[styles.srNumber, { color: primary }]}>
+                    {item.srNumber}
                   </Text>
                 )}
+                <View
+                  style={[
+                    styles.stageBadge,
+                    { backgroundColor: getStageColor(item.stage) + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stageText,
+                      { color: getStageColor(item.stage) },
+                    ]}
+                  >
+                    {getStageLabel(item.stage)}
+                  </Text>
+                </View>
               </View>
+              <Text style={[styles.hours, { color: colors.textMuted }]}>
+                {item.hours}h
+              </Text>
             </View>
-          )}
-        />
-      )}
+
+            {item.taskTitle && (
+              <Text style={[styles.taskTitle, { color: colors.text }]}>
+                {item.taskTitle}
+              </Text>
+            )}
+            {item.projectName && (
+              <Text
+                style={[styles.projectName, { color: colors.textSecondary }]}
+              >
+                {item.projectName}
+              </Text>
+            )}
+            {item.description && (
+              <Text
+                style={[styles.description, { color: colors.textSecondary }]}
+                numberOfLines={2}
+              >
+                {item.description}
+              </Text>
+            )}
+
+            <View style={styles.itemBottom}>
+              <Text style={[styles.date, { color: colors.textMuted }]}>
+                {item.startDate
+                  ? `${formatDate(item.startDate)} ~ ${item.endDate ? formatDate(item.endDate) : "미정"}`
+                  : formatDate(item.workDate)}
+              </Text>
+              {!item.isAcknowledged && (
+                <TouchableOpacity
+                  style={[styles.ackButton, { backgroundColor: primary }]}
+                  onPress={() => handleAcknowledge(item.id)}
+                >
+                  <Text style={styles.ackButtonText}>확인</Text>
+                </TouchableOpacity>
+              )}
+              {item.isAcknowledged && (
+                <Text style={[styles.ackDone, { color: "#22c55e" }]}>
+                  ✓ 확인완료
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
   headerCount: { fontSize: 14 },
   list: { padding: 16 },
   item: { borderRadius: 8, padding: 16, marginBottom: 8, borderWidth: 1 },
@@ -291,11 +272,5 @@ const styles = StyleSheet.create({
   ackButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   ackButtonText: { color: "#fff", fontSize: 13, fontWeight: "600" },
   ackDone: { fontSize: 13, fontWeight: "600" },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 400,
-  },
-  emptyText: { fontSize: 16 },
+  emptyContainer: { flexGrow: 1, padding: 16 },
 });

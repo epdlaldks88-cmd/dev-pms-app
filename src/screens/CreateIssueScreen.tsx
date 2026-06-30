@@ -16,6 +16,8 @@ import Header from "../components/Header";
 import { createIssue } from "../api/issues";
 import { getProjects } from "../api/projects";
 import { getAllUsers } from "../api/users";
+import { ErrorView } from "../components/ErrorView";
+import Toast from "react-native-toast-message";
 
 const RISK_LEVELS = [
   { key: "LOW", label: "낮음", color: "#22c55e" },
@@ -35,24 +37,28 @@ export default function CreateIssueScreen({ navigation }: any) {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
+
+  const init = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const [projectsData, usersData] = await Promise.all([
+        getProjects(),
+        getAllUsers(),
+      ]);
+      setProjects(projectsData);
+      setUsers(usersData);
+      if (projectsData.length > 0) setProjectId(projectsData[0].id);
+    } catch (e) {
+      if (__DEV__) console.log("[CreateIssue] init failed");
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      try {
-        const [projectsData, usersData] = await Promise.all([
-          getProjects(),
-          getAllUsers(),
-        ]);
-        setProjects(projectsData);
-        setUsers(usersData);
-        if (projectsData.length > 0) setProjectId(projectsData[0].id);
-      } catch (error) {
-        console.log("데이터 로딩 실패:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     init();
   }, []);
 
@@ -73,9 +79,13 @@ export default function CreateIssueScreen({ navigation }: any) {
         riskLevel,
         assigneeId: assigneeId || undefined,
       });
-      Alert.alert("완료", "이슈가 등록됐습니다", [
-        { text: "확인", onPress: () => navigation.goBack() },
-      ]);
+
+      Toast.show({
+        type: "success",
+        text1: "이슈가 등록됐어요",
+        visibilityTime: 2000,
+      });
+      navigation.goBack();
     } catch (error) {
       Alert.alert("오류", "이슈 등록에 실패했습니다");
     } finally {
@@ -85,8 +95,21 @@ export default function CreateIssueScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="이슈 등록" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </View>
+    );
+  }
+
+  // 로딩 분기 다음에 추가
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="이슈 등록" onBack={() => navigation.goBack()} />
+        <ErrorView onRetry={init} />
       </View>
     );
   }
@@ -115,7 +138,11 @@ export default function CreateIssueScreen({ navigation }: any) {
           }
         />
 
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+          pointerEvents={saving ? "none" : "auto"}
+        >
           {/* 제목 */}
           <View
             style={[
@@ -179,7 +206,11 @@ export default function CreateIssueScreen({ navigation }: any) {
             <Text style={[styles.label, { color: colors.textSecondary }]}>
               프로젝트 *
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pointerEvents={saving ? "none" : "auto"}
+            >
               <View style={styles.chipRow}>
                 {projects.map((p) => (
                   <TouchableOpacity
@@ -252,7 +283,11 @@ export default function CreateIssueScreen({ navigation }: any) {
             <Text style={[styles.label, { color: colors.textSecondary }]}>
               담당자
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pointerEvents={saving ? "none" : "auto"}
+            >
               <View style={styles.chipRow}>
                 <TouchableOpacity
                   style={[

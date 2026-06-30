@@ -6,23 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
-import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SkeletonList } from "../components/SkeletonItem";
-import EmptyState from "../components/EmptyState";
 import { getAllNotices } from "../api/notices";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
+import { SkeletonList } from "../components/SkeletonItem";
 
 interface Notice {
   id: string;
@@ -56,7 +48,7 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
       });
       setNotices(sorted);
     } catch (error) {
-      console.log("공지사항 조회 실패:", error);
+      if (__DEV__) console.log("[NoticesScreen] fetch failed");
       setError(true);
     } finally {
       setLoading(false);
@@ -65,7 +57,7 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchNotices();
+    await fetchNotices(false);
     setRefreshing(false);
   }, []);
 
@@ -85,116 +77,107 @@ export default function NoticesScreen({ navigation, showHeader = true }: any) {
   }
 
   if (error) {
-    return <ErrorView onRetry={fetchNotices} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="공지사항" />}
+        <ErrorView onRetry={() => fetchNotices()} />
+      </View>
+    );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showHeader && <Header title="공지사항" />}
-      {notices.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+
+      <FlatList
+        data={notices}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          notices.length === 0 ? styles.emptyContainer : styles.list
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="📢"
+            icon="megaphone-outline"
             title="공지사항이 없습니다"
             description="등록된 공지사항이 없어요"
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={notices}
-          keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-                item.isPinned && {
-                  borderLeftWidth: 3,
-                  borderLeftColor: primary,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("NoticeDetail", { notice: item })
-              }
-            >
-              <View style={styles.itemTop}>
-                <View style={styles.tags}>
-                  {item.isPinned && (
-                    <View
-                      style={[
-                        styles.pinnedBadge,
-                        { backgroundColor: primary + "20" },
-                      ]}
-                    >
-                      <Text style={[styles.pinnedText, { color: primary }]}>
-                        📌 고정
-                      </Text>
-                    </View>
-                  )}
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.item,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              item.isPinned && {
+                borderLeftWidth: 3,
+                borderLeftColor: primary,
+              },
+            ]}
+            onPress={() =>
+              navigation.navigate("NoticeDetail", { notice: item })
+            }
+          >
+            <View style={styles.itemTop}>
+              <View style={styles.tags}>
+                {item.isPinned && (
                   <View
                     style={[
-                      styles.projectTag,
-                      { backgroundColor: item.project?.color + "20" },
+                      styles.pinnedBadge,
+                      { backgroundColor: primary + "20" },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.projectText,
-                        { color: item.project?.color },
-                      ]}
-                    >
-                      {item.project?.name}
+                    <Text style={[styles.pinnedText, { color: primary }]}>
+                      📌 고정
                     </Text>
                   </View>
+                )}
+                <View
+                  style={[
+                    styles.projectTag,
+                    { backgroundColor: item.project?.color + "20" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.projectText, { color: item.project?.color }]}
+                  >
+                    {item.project?.name}
+                  </Text>
                 </View>
-                <Text style={[styles.date, { color: colors.textMuted }]}>
-                  {formatDate(item.createdAt)}
-                </Text>
               </View>
-              <Text
-                style={[styles.title, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {item.title}
+              <Text style={[styles.date, { color: colors.textMuted }]}>
+                {formatDate(item.createdAt)}
               </Text>
-              <Text
-                style={[styles.content, { color: colors.textSecondary }]}
-                numberOfLines={2}
-              >
-                {item.content}
-              </Text>
-              <Text style={[styles.author, { color: colors.textMuted }]}>
-                {item.createdBy?.name}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+            </View>
+            <Text
+              style={[styles.title, { color: colors.text }]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+            <Text
+              style={[styles.content, { color: colors.textSecondary }]}
+              numberOfLines={2}
+            >
+              {item.content}
+            </Text>
+            <Text style={[styles.author, { color: colors.textMuted }]}>
+              {item.createdBy?.name}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
   item: {
     padding: 16,
     marginHorizontal: 16,
@@ -217,11 +200,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: "600", marginBottom: 4 },
   content: { fontSize: 13, lineHeight: 18, marginBottom: 8 },
   author: { fontSize: 12 },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 400,
-  },
-  emptyText: { fontSize: 16 },
+  emptyContainer: { flexGrow: 1 }, // flex: 1 → flexGrow: 1
+  list: { padding: 16 },
 });

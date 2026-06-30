@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,10 @@ import {
 } from "react-native";
 import { getAllUsers } from "../api/users";
 import { useTheme } from "../theme/ThemeContext";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
+import { SkeletonList } from "../components/SkeletonItem";
+import Header from "../components/Header";
 
 interface User {
   id: string;
@@ -19,25 +23,34 @@ interface User {
   position?: string;
 }
 
-export default function NewMessageScreen({ navigation }: any) {
+export default function NewMessageScreen({
+  navigation,
+  showHeader = true,
+}: any) {
   const [users, setUsers] = useState<User[]>([]);
   const [filtered, setFiltered] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
+
+  // fetchUsers 정리
+  const fetchUsers = async (showLoading: boolean = true) => {
+    try {
+      setError(false);
+      if (showLoading) setLoading(true);
+      const data = await getAllUsers();
+      setUsers(data);
+      setFiltered(data);
+    } catch (e) {
+      if (__DEV__) console.log("[NewMessage] fetchUsers failed");
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await getAllUsers();
-        setUsers(data);
-        setFiltered(data);
-      } catch (error) {
-        console.log("유저 조회 실패:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsers();
   }, []);
 
@@ -55,33 +68,32 @@ export default function NewMessageScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && (
+          <Header title="새 쪽지" onBack={() => navigation.goBack()} />
+        )}
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </View>
+    );
+  }
+
+  // 변경 후
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="새 쪽지" />}
+        <ErrorView onRetry={() => fetchUsers()} />
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 16,
-          paddingTop: 56,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-        }}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backButton, { color: primary }]}>← 뒤로</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          새 쪽지
-        </Text>
-      </View>
-
+      {showHeader && (
+        <Header title="새 쪽지" onBack={() => navigation.goBack()} />
+      )}
       <View
         style={[
           styles.searchBox,
@@ -107,6 +119,20 @@ export default function NewMessageScreen({ navigation }: any) {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          filtered.length === 0 ? { flexGrow: 1 } : undefined
+        }
+        ListEmptyComponent={
+          <EmptyState
+            icon="search-outline"
+            title={search.trim() ? "검색 결과가 없습니다" : "사용자가 없습니다"}
+            description={
+              search.trim()
+                ? `"${search}"에 해당하는 사용자가 없어요.`
+                : undefined
+            }
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
@@ -144,8 +170,6 @@ export default function NewMessageScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: { fontSize: 16, marginRight: 12 },
-  headerTitle: { fontSize: 16, fontWeight: "bold" },
   searchBox: { padding: 12, borderBottomWidth: 1 },
   searchInput: { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 14 },
   item: {

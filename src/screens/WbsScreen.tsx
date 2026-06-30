@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,20 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
   Alert,
-  Modal,
-  TextInput,
-  ScrollView,
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import ErrorView from "../components/ErrorView";
-import EmptyState from "../components/EmptyState";
-import Header from "../components/Header";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
 import { SkeletonList } from "../components/SkeletonItem";
+import Header from "../components/Header";
 import { formatDate } from "../utils/date";
-import { getAllWbsItems, updateWbsItem, deleteWbsItem } from "../api/wbs";
+import { getAllWbsItems, updateWbsItem } from "../api/wbs";
 
 interface WbsItem {
   id: string;
@@ -54,8 +50,6 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<WbsItem | null>(null);
-  const [showModal, setShowModal] = useState(false);
   const { primary, colors } = useTheme();
 
   const fetchItems = async (showLoading: boolean = true) => {
@@ -74,20 +68,20 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchItems();
+    await fetchItems(false); // ⭐ 스켈레톤 안 뜨게
     setRefreshing(false);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchItems(items.length === 0); // items는 각 화면의 데이터 state명
+      fetchItems(items.length === 0);
     }, [items.length]),
   );
 
   const handleUpdateProgress = async (item: WbsItem, progress: number) => {
     try {
       await updateWbsItem(item.project!.id, item.id, { progress });
-      await fetchItems();
+      await fetchItems(false);
     } catch (e) {
       Alert.alert("오류", "진행률 수정에 실패했습니다");
     }
@@ -96,8 +90,7 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
   const handleUpdateStatus = async (item: WbsItem, status: string) => {
     try {
       await updateWbsItem(item.project!.id, item.id, { status });
-      await fetchItems();
-      setShowModal(false);
+      await fetchItems(false);
     } catch (e) {
       Alert.alert("오류", "상태 변경에 실패했습니다");
     }
@@ -131,199 +124,197 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
     return `D+${Math.abs(diff)}`;
   };
 
+  // === 로딩 ===
   if (loading) {
     return (
-      <View style={[{ flex: 1 }, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {showHeader && <Header title="WBS" />}
         <SkeletonList count={5} />
       </View>
     );
   }
 
+  // === 에러 ===
   if (error) {
-    return <ErrorView onRetry={fetchItems} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="WBS" />}
+        <ErrorView onRetry={() => fetchItems()} />
+      </View>
+    );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showHeader && <Header title="WBS" />}
 
-      {items.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      {/* ⭐ FlatList ListEmptyComponent 일원화 */}
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          items.length === 0 ? styles.emptyContainer : styles.list
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        ListEmptyComponent={
           <EmptyState
-            icon="📋"
+            icon="git-network-outline"
             title="WBS 항목이 없습니다"
             description="프로젝트에 WBS 항목을 추가해주세요"
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => {
-            const dday = getDday(item.endDate);
-            const isOverdue =
-              item.endDate &&
-              new Date(item.endDate) < new Date() &&
-              item.status !== "DONE";
-            return (
-              <View
-                style={[
-                  styles.item,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  { marginLeft: item.depth * 16 },
-                ]}
-              >
-                <View style={styles.itemTop}>
-                  <View style={styles.leftInfo}>
-                    {item.project && (
-                      <View
-                        style={[
-                          styles.projectTag,
-                          { backgroundColor: item.project.color + "20" },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.projectText,
-                            { color: item.project.color },
-                          ]}
-                        >
-                          {item.project?.name}
-                        </Text>
-                      </View>
-                    )}
-                    <TouchableOpacity
-                      style={[
-                        styles.statusBadge,
-                        { backgroundColor: STATUS_COLORS[item.status] + "20" },
-                      ]}
-                      onPress={() => showStatusPicker(item)}
-                    >
-                      <Text
-                        style={[
-                          styles.statusText,
-                          { color: STATUS_COLORS[item.status] },
-                        ]}
-                      >
-                        {STATUS_LABELS[item.status]} ▼
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  {dday && (
-                    <Text
-                      style={[
-                        styles.dday,
-                        { color: isOverdue ? "#ef4444" : colors.textMuted },
-                      ]}
-                    >
-                      {dday}
-                    </Text>
-                  )}
-                </View>
-
-                <Text style={[styles.title, { color: colors.text }]}>
-                  {item.title}
-                </Text>
-
-                {item.assignee && (
-                  <Text
-                    style={[styles.assignee, { color: colors.textSecondary }]}
-                  >
-                    👤 {item.assignee}
-                  </Text>
-                )}
-
-                {(item.startDate || item.endDate) && (
-                  <Text style={[styles.date, { color: colors.textMuted }]}>
-                    📅 {item.startDate ? formatDate(item.startDate) : "미정"} ~{" "}
-                    {item.endDate ? formatDate(item.endDate) : "미정"}
-                  </Text>
-                )}
-
-                {/* 진행률 바 */}
-                <View style={styles.progressContainer}>
-                  <View
-                    style={[
-                      styles.progressBar,
-                      { backgroundColor: colors.border },
-                    ]}
-                  >
+        }
+        renderItem={({ item }) => {
+          const dday = getDday(item.endDate);
+          const isOverdue =
+            item.endDate &&
+            new Date(item.endDate) < new Date() &&
+            item.status !== "DONE";
+          return (
+            <View
+              style={[
+                styles.item,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+                { marginLeft: item.depth * 16 },
+              ]}
+            >
+              <View style={styles.itemTop}>
+                <View style={styles.leftInfo}>
+                  {item.project && (
                     <View
                       style={[
-                        styles.progressFill,
-                        {
-                          width: `${item.progress}%` as any,
-                          backgroundColor: primary,
-                        },
+                        styles.projectTag,
+                        { backgroundColor: item.project.color + "20" },
                       ]}
-                    />
-                  </View>
-                  <Text
-                    style={[styles.progressText, { color: colors.textMuted }]}
-                  >
-                    {item.progress}%
-                  </Text>
-                </View>
-
-                {/* 진행률 조절 버튼 */}
-                <View style={styles.progressButtons}>
-                  {[0, 25, 50, 75, 100].map((p) => (
-                    <TouchableOpacity
-                      key={p}
-                      style={[
-                        styles.progressBtn,
-                        { borderColor: colors.border },
-                        item.progress === p && {
-                          backgroundColor: primary,
-                          borderColor: primary,
-                        },
-                      ]}
-                      onPress={() => handleUpdateProgress(item, p)}
                     >
                       <Text
                         style={[
-                          styles.progressBtnText,
-                          {
-                            color:
-                              item.progress === p
-                                ? "#fff"
-                                : colors.textSecondary,
-                          },
+                          styles.projectText,
+                          { color: item.project.color },
                         ]}
                       >
-                        {p}%
+                        {item.project?.name}
                       </Text>
-                    </TouchableOpacity>
-                  ))}
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: STATUS_COLORS[item.status] + "20" },
+                    ]}
+                    onPress={() => showStatusPicker(item)}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: STATUS_COLORS[item.status] },
+                      ]}
+                    >
+                      {STATUS_LABELS[item.status]} ▼
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-
-                {item.note && (
-                  <Text style={[styles.note, { color: colors.textMuted }]}>
-                    {item.note}
+                {dday && (
+                  <Text
+                    style={[
+                      styles.dday,
+                      { color: isOverdue ? "#ef4444" : colors.textMuted },
+                    ]}
+                  >
+                    {dday}
                   </Text>
                 )}
               </View>
-            );
-          }}
-        />
-      )}
+
+              <Text style={[styles.title, { color: colors.text }]}>
+                {item.title}
+              </Text>
+
+              {item.assignee && (
+                <Text
+                  style={[styles.assignee, { color: colors.textSecondary }]}
+                >
+                  👤 {item.assignee}
+                </Text>
+              )}
+
+              {(item.startDate || item.endDate) && (
+                <Text style={[styles.date, { color: colors.textMuted }]}>
+                  📅 {item.startDate ? formatDate(item.startDate) : "미정"} ~{" "}
+                  {item.endDate ? formatDate(item.endDate) : "미정"}
+                </Text>
+              )}
+
+              <View style={styles.progressContainer}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    { backgroundColor: colors.border },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${item.progress}%` as any,
+                        backgroundColor: primary,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[styles.progressText, { color: colors.textMuted }]}
+                >
+                  {item.progress}%
+                </Text>
+              </View>
+
+              <View style={styles.progressButtons}>
+                {[0, 25, 50, 75, 100].map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[
+                      styles.progressBtn,
+                      { borderColor: colors.border },
+                      item.progress === p && {
+                        backgroundColor: primary,
+                        borderColor: primary,
+                      },
+                    ]}
+                    onPress={() => handleUpdateProgress(item, p)}
+                  >
+                    <Text
+                      style={[
+                        styles.progressBtnText,
+                        {
+                          color:
+                            item.progress === p ? "#fff" : colors.textSecondary,
+                        },
+                      ]}
+                    >
+                      {p}%
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {item.note && (
+                <Text style={[styles.note, { color: colors.textMuted }]}>
+                  {item.note}
+                </Text>
+              )}
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }
@@ -331,6 +322,7 @@ export default function WbsScreen({ navigation, showHeader = true }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { padding: 16 },
+  emptyContainer: { flexGrow: 1, padding: 16 }, // ⭐ Empty 중앙 정렬용
   item: { borderRadius: 8, padding: 16, marginBottom: 8, borderWidth: 1 },
   itemTop: {
     flexDirection: "row",

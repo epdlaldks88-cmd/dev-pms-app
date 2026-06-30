@@ -6,18 +6,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
   Alert,
   TextInput,
   Modal,
-  ScrollView,
 } from "react-native";
 import { getMyRooms, createRoom } from "../api/rooms";
 import { getAllUsers } from "../api/users";
 import { useTheme } from "../theme/ThemeContext";
-import EmptyState from "../components/EmptyState";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
+import { SkeletonList } from "../components/SkeletonItem";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSocket } from "../hooks/useSocket";
+import Header from "../components/Header";
 
 interface Room {
   id: string;
@@ -28,7 +29,7 @@ interface Room {
   unreadCount?: number;
 }
 
-export default function RoomsScreen({ navigation }: any) {
+export default function RoomsScreen({ navigation, showHeader = true }: any) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,15 +39,17 @@ export default function RoomsScreen({ navigation }: any) {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const { primary, colors } = useTheme();
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState(false);
 
-  const fetchRooms = async () => {
-    console.log("=== fetchRooms 호출됨 ==="); // 함수 진입 로그
+  const fetchRooms = async (showLoading: boolean = true) => {
     try {
+      setError(false);
+      if (showLoading) setLoading(true);
       const data = await getMyRooms();
-      console.log("채팅방 데이터:", JSON.stringify(data));
       setRooms(data);
-    } catch (error) {
-      console.log("채팅방 조회 실패:", error);
+    } catch (e) {
+      if (__DEV__) console.log("[RoomsScreen] fetchRooms failed");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -56,32 +59,32 @@ export default function RoomsScreen({ navigation }: any) {
     try {
       const data = await getAllUsers();
       setUsers(data);
-    } catch (error) {
-      console.log("유저 조회 실패:", error);
+    } catch (e) {
+      if (__DEV__) console.log("[RoomsScreen] fetchUsers failed");
     }
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchRooms();
+    await fetchRooms(false);
     setRefreshing(false);
   }, []);
 
+  // useFocusEffect가 마운트 시점에도 실행되므로 useEffect의 fetchRooms 중복 제거
   useEffect(() => {
-    fetchRooms();
     fetchUsers();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchRooms();
-    }, []),
+      fetchRooms(rooms.length === 0);
+    }, [rooms.length]),
   );
 
   useSocket(
     "globalRoomMessage",
     () => {
-      fetchRooms();
+      fetchRooms(false);
     },
     [],
   );
@@ -91,15 +94,15 @@ export default function RoomsScreen({ navigation }: any) {
       Alert.alert("오류", "채팅방 이름을 입력해주세요");
       return;
     }
-    if (creating) return; // 중복 방지
+    if (creating) return;
     setCreating(true);
     try {
       await createRoom(roomName.trim(), selectedUsers);
       setShowCreate(false);
       setRoomName("");
       setSelectedUsers([]);
-      await fetchRooms();
-    } catch (error) {
+      await fetchRooms(false);
+    } catch (e) {
       Alert.alert("오류", "채팅방 생성에 실패했습니다");
     } finally {
       setCreating(false);
@@ -127,16 +130,30 @@ export default function RoomsScreen({ navigation }: any) {
     return `${days}일 전`;
   };
 
+  // === 로딩 (스켈레톤 + Header) ===
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="채팅방" />}
+        <SkeletonList count={5} />
+      </View>
+    );
+  }
+
+  // === 에러 (Header 유지) ===
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="채팅방" />}
+        <ErrorView onRetry={() => fetchRooms()} />
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {showHeader && <Header title="채팅방" />}
+
       <View
         style={[
           styles.actionBar,
@@ -150,110 +167,100 @@ export default function RoomsScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {rooms.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      {/* ListEmptyComponent 일원화 */}
+      <FlatList
+        data={rooms}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          rooms.length === 0 ? styles.emptyContainer : undefined
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        ListEmptyComponent={
           <EmptyState
-            icon="💬"
-            title="채팅방이 없습니다"
-            description="새 채팅방을 만들어보세요"
+            icon="chatbubbles-outline"
+            title="참여중인 채팅방이 없습니다"
+            description="새 채팅방을 만들어 동료와 대화를 시작해보세요."
             actionLabel="채팅방 만들기"
             onAction={() => setShowCreate(true)}
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={rooms}
-          keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                {
-                  backgroundColor: colors.surface,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("RoomChat", {
-                  roomId: item.id,
-                  roomName: item.name,
-                })
-              }
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.item,
+              {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.border,
+              },
+            ]}
+            onPress={() =>
+              navigation.navigate("RoomChat", {
+                roomId: item.id,
+                roomName: item.name,
+              })
+            }
+          >
+            <View
+              style={[styles.roomIcon, { backgroundColor: primary + "20" }]}
             >
-              <View
-                style={[styles.roomIcon, { backgroundColor: primary + "20" }]}
-              >
-                <Text style={[styles.roomIconText, { color: primary }]}>
-                  {item.name?.charAt(0) || "?"}
-                </Text>
-              </View>
-              <View style={styles.itemContent}>
-                <View style={styles.itemTop}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flex: 1,
-                    }}
-                  >
-                    <Text
-                      style={[styles.roomName, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {item.name}
-                    </Text>
-                    {(item.unreadCount ?? 0) > 0 && (
-                      <View
-                        style={[
-                          styles.unreadBadge,
-                          { backgroundColor: primary },
-                        ]}
-                      >
-                        <Text style={styles.unreadBadgeText}>
-                          {(item.unreadCount ?? 0) > 99
-                            ? "99+"
-                            : item.unreadCount}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  {item.lastMessage && (
-                    <Text style={[styles.time, { color: colors.textMuted }]}>
-                      {formatDate(item.lastMessage.createdAt)}
-                    </Text>
-                  )}
-                </View>
-                <Text style={[styles.memberCount, { color: colors.textMuted }]}>
-                  멤버 {item.members?.length || 0}명
-                </Text>
-                {item.lastMessage && (
+              <Text style={[styles.roomIconText, { color: primary }]}>
+                {item.name?.charAt(0) || "?"}
+              </Text>
+            </View>
+            <View style={styles.itemContent}>
+              <View style={styles.itemTop}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    flex: 1,
+                  }}
+                >
                   <Text
-                    style={[
-                      styles.lastMessage,
-                      { color: colors.textSecondary },
-                    ]}
+                    style={[styles.roomName, { color: colors.text }]}
                     numberOfLines={1}
                   >
-                    {item.lastMessage.content}
+                    {item.name}
+                  </Text>
+                  {(item.unreadCount ?? 0) > 0 && (
+                    <View
+                      style={[styles.unreadBadge, { backgroundColor: primary }]}
+                    >
+                      <Text style={styles.unreadBadgeText}>
+                        {(item.unreadCount ?? 0) > 99
+                          ? "99+"
+                          : item.unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                {item.lastMessage && (
+                  <Text style={[styles.time, { color: colors.textMuted }]}>
+                    {formatDate(item.lastMessage.createdAt)}
                   </Text>
                 )}
               </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+              <Text style={[styles.memberCount, { color: colors.textMuted }]}>
+                멤버 {item.members?.length || 0}명
+              </Text>
+              {item.lastMessage && (
+                <Text
+                  style={[styles.lastMessage, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {item.lastMessage.content}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+      />
 
       {/* 채팅방 생성 모달 */}
       <Modal visible={showCreate} animationType="slide" transparent>
@@ -351,16 +358,6 @@ export default function RoomsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
   item: {
     flexDirection: "row",
     padding: 16,
@@ -386,8 +383,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 12 },
   memberCount: { fontSize: 12, marginBottom: 2 },
   lastMessage: { fontSize: 13 },
-  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { fontSize: 16 },
+  emptyContainer: { flexGrow: 1 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "#00000080",

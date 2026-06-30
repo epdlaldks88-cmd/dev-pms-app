@@ -6,18 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
-  ScrollView,
 } from "react-native";
 import { getConversations } from "../api/messages";
 import { useTheme } from "../theme/ThemeContext";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
-import EmptyState from "../components/EmptyState";
+import { formatDate } from "../utils/date";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
+import { SkeletonList } from "../components/SkeletonItem";
+import Header from "../components/Header";
 
 interface Conversation {
   user: { id: string; name: string; email: string };
@@ -30,18 +26,22 @@ interface Conversation {
   unreadCount: number;
 }
 
-export default function MessagesScreen({ navigation }: any) {
+export default function MessagesScreen({ navigation, showHeader = true }: any) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { primary, colors } = useTheme();
+  const [error, setError] = useState(false);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (showLoading: boolean = true) => {
     try {
+      setError(false);
+      if (showLoading) setLoading(true);
       const data = await getConversations();
       setConversations(data);
     } catch (error) {
-      console.log("대화 목록 조회 실패:", error);
+      if (__DEV__) console.log("[MessagesScreen] fetch failed");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export default function MessagesScreen({ navigation }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchConversations();
+    await fetchConversations(false);
     setRefreshing(false);
   }, []);
 
@@ -59,14 +59,25 @@ export default function MessagesScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[{ flex: 1 }, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="쪽지" />}
+        <SkeletonList count={5} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="쪽지" />}
+        <ErrorView onRetry={() => fetchConversations()} />
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {showHeader && <Header title="쪽지" />} {/* ⭐ 추가 */}
       <View
         style={[
           styles.actionBar,
@@ -77,106 +88,91 @@ export default function MessagesScreen({ navigation }: any) {
           <Text style={[styles.newButton, { color: primary }]}>+ 새 쪽지</Text>
         </TouchableOpacity>
       </View>
-      {conversations.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <FlatList
+        data={conversations}
+        keyExtractor={(item) => item.user.id}
+        contentContainerStyle={
+          conversations.length === 0 ? styles.emptyContainer : styles.list
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="💬"
+            icon="chatbubble-outline"
             title="쪽지가 없습니다"
             description="아직 주고받은 쪽지가 없어요"
             actionLabel="새 쪽지 보내기"
             onAction={() => navigation.navigate("NewMessage")}
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.user.id}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.item,
-                {
-                  backgroundColor: colors.surface,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-              onPress={() =>
-                navigation.navigate("MessageThread", {
-                  userId: item.user.id,
-                  userName: item.user.name,
-                })
-              }
-            >
-              <View style={[styles.avatar, { backgroundColor: primary }]}>
-                <Text style={styles.avatarText}>
-                  {item.user?.name?.charAt(0) || "?"}
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.item,
+              {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.border,
+              },
+            ]}
+            onPress={() =>
+              navigation.navigate("MessageThread", {
+                userId: item.user.id,
+                userName: item.user.name,
+              })
+            }
+          >
+            <View style={[styles.avatar, { backgroundColor: primary }]}>
+              <Text style={styles.avatarText}>
+                {item.user?.name?.charAt(0) || "?"}
+              </Text>
+            </View>
+            <View style={styles.itemContent}>
+              <View style={styles.itemTop}>
+                <Text style={[styles.userName, { color: colors.text }]}>
+                  {item.user?.name}
+                </Text>
+                <Text style={[styles.time, { color: colors.textMuted }]}>
+                  {item.lastMessage
+                    ? formatDate(item.lastMessage.createdAt)
+                    : ""}
                 </Text>
               </View>
-              <View style={styles.itemContent}>
-                <View style={styles.itemTop}>
-                  <Text style={[styles.userName, { color: colors.text }]}>
-                    {item.user?.name}
-                  </Text>
-                  <Text style={[styles.time, { color: colors.textMuted }]}>
-                    {item.lastMessage
-                      ? formatDate(item.lastMessage.createdAt)
-                      : ""}
-                  </Text>
-                </View>
-                <View style={styles.itemBottom}>
-                  <Text
-                    style={[
-                      styles.lastMessage,
-                      {
-                        color:
-                          item.unreadCount > 0
-                            ? colors.text
-                            : colors.textSecondary,
-                      },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {item.lastMessage?.content || ""}
-                  </Text>
-                  {item.unreadCount > 0 && (
-                    <View style={[styles.badge, { backgroundColor: primary }]}>
-                      <Text style={styles.badgeText}>{item.unreadCount}</Text>
-                    </View>
-                  )}
-                </View>
+              <View style={styles.itemBottom}>
+                <Text
+                  style={[
+                    styles.lastMessage,
+                    {
+                      color:
+                        item.unreadCount > 0
+                          ? colors.text
+                          : colors.textSecondary,
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.lastMessage?.content || ""}
+                </Text>
+                {item.unreadCount > 0 && (
+                  <View style={[styles.badge, { backgroundColor: primary }]}>
+                    <Text style={styles.badgeText}>{item.unreadCount}</Text>
+                  </View>
+                )}
               </View>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+            </View>
+          </TouchableOpacity>
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
   newButton: { fontSize: 14, fontWeight: "600" },
   item: {
     flexDirection: "row",
@@ -216,7 +212,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
-  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyContainer: { flexGrow: 1 },
   emptyText: { fontSize: 16 },
   actionBar: {
     flexDirection: "row",
@@ -224,4 +220,5 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
   },
+  list: { padding: 16 },
 });

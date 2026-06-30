@@ -97,7 +97,6 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         }
       />
-
       {/* 스크롤 탭 */}
       <View
         style={[
@@ -136,7 +135,6 @@ export default function HomeScreen({ navigation }: any) {
           ))}
         </ScrollView>
       </View>
-
       {/* 스와이프 가능한 페이지 */}
       <PagerView
         ref={pagerRef}

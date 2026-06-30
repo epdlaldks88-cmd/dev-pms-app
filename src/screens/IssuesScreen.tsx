@@ -6,25 +6,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
-  ScrollView,
   Alert,
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
-import ErrorView from "../components/ErrorView";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SkeletonList } from "../components/SkeletonItem";
-import EmptyState from "../components/EmptyState";
 import { getAllIssues, updateIssue, deleteIssue } from "../api/issues";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { EmptyState } from "../components/EmptyState";
+import { ErrorView } from "../components/ErrorView";
+import { SkeletonList } from "../components/SkeletonItem";
+import { userStorage } from "../lib/storage";
 
 interface Issue {
   id: string;
@@ -57,7 +49,7 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
       );
       setIssues(sorted);
     } catch (error) {
-      console.log("이슈 조회 실패:", error);
+      if (__DEV__) console.log("[IssuesScreen] fetch failed");
       setError(true);
     } finally {
       setLoading(false);
@@ -66,7 +58,7 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchIssues();
+    await fetchIssues(false);
     setRefreshing(false);
   }, []);
 
@@ -77,7 +69,7 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
   );
 
   useEffect(() => {
-    AsyncStorage.getItem("userId").then(setMyId);
+    userStorage.getUserId().then(setMyId);
   }, []);
 
   const getRiskLabel = (risk: string) => {
@@ -123,7 +115,7 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
   const handleStatusChange = async (issue: Issue, newStatus: string) => {
     try {
       await updateIssue(issue.project!.id, issue.id, { status: newStatus });
-      await fetchIssues();
+      await fetchIssues(false);
     } catch (error) {
       Alert.alert("오류", "상태 변경에 실패했습니다");
     }
@@ -167,7 +159,12 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
   }
 
   if (error) {
-    return <ErrorView onRetry={fetchIssues} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {showHeader && <Header title="이슈 관리" />}
+        <ErrorView onRetry={() => fetchIssues()} />
+      </View>
+    );
   }
 
   return (
@@ -182,146 +179,126 @@ export default function IssuesScreen({ navigation, showHeader = true }: any) {
           } // 기존 우측 버튼이 있으면 유지
         />
       )}
-      {issues.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
+      <FlatList
+        data={issues}
+        contentContainerStyle={
+          issues.length === 0 ? styles.emptyContainer : styles.list
+        }
+        ListEmptyComponent={
           <EmptyState
-            icon="⚠️"
+            icon="warning-outline"
             title="이슈가 없습니다"
             description="등록된 이슈가 없어요"
           />
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={issues}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={10}
-          renderItem={({ item }) => {
-            const canDelete = (item.createdBy as any)?.id === myId;
-            return (
-              <TouchableOpacity
-                activeOpacity={canDelete ? 0.7 : 1}
-                onLongPress={() => canDelete && handleDelete(item)}
-                style={[
-                  styles.item,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  item.riskLevel === "CRITICAL" && {
-                    borderLeftWidth: 3,
-                    borderLeftColor: "#ef4444",
-                  },
-                ]}
-              >
-                <View style={styles.itemTop}>
-                  <View style={styles.badges}>
-                    <View
-                      style={[
-                        styles.riskBadge,
-                        {
-                          backgroundColor: getRiskColor(item.riskLevel) + "20",
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.riskText,
-                          { color: getRiskColor(item.riskLevel) },
-                        ]}
-                      >
-                        {getRiskLabel(item.riskLevel)}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.projectTag,
-                        { backgroundColor: item.project?.color + "20" },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.projectText,
-                          { color: item.project?.color },
-                        ]}
-                      >
-                        {item.project?.name}
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
+        renderItem={({ item }) => {
+          const canDelete = (item.createdBy as any)?.id === myId;
+          return (
+            <TouchableOpacity
+              activeOpacity={canDelete ? 0.7 : 1}
+              onLongPress={() => canDelete && handleDelete(item)}
+              style={[
+                styles.item,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+                item.riskLevel === "CRITICAL" && {
+                  borderLeftWidth: 3,
+                  borderLeftColor: "#ef4444",
+                },
+              ]}
+            >
+              <View style={styles.itemTop}>
+                <View style={styles.badges}>
+                  <View
                     style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(item.status) + "20" },
+                      styles.riskBadge,
+                      {
+                        backgroundColor: getRiskColor(item.riskLevel) + "20",
+                      },
                     ]}
-                    onPress={() => showStatusPicker(item)}
                   >
                     <Text
                       style={[
-                        styles.statusText,
-                        { color: getStatusColor(item.status) },
+                        styles.riskText,
+                        { color: getRiskColor(item.riskLevel) },
                       ]}
                     >
-                      {getStatusLabel(item.status)} ▼
+                      {getRiskLabel(item.riskLevel)}
                     </Text>
-                  </TouchableOpacity>
+                  </View>
+                  <View
+                    style={[
+                      styles.projectTag,
+                      { backgroundColor: item.project?.color + "20" },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.projectText,
+                        { color: item.project?.color },
+                      ]}
+                    >
+                      {item.project?.name}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={[styles.title, { color: colors.text }]}>
-                  {item.title}
-                </Text>
-                {item.description && (
+                <TouchableOpacity
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: getStatusColor(item.status) + "20" },
+                  ]}
+                  onPress={() => showStatusPicker(item)}
+                >
                   <Text
                     style={[
-                      styles.description,
-                      { color: colors.textSecondary },
+                      styles.statusText,
+                      { color: getStatusColor(item.status) },
                     ]}
-                    numberOfLines={2}
                   >
-                    {item.description}
+                    {getStatusLabel(item.status)} ▼
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {item.title}
+              </Text>
+              {item.description && (
+                <Text
+                  style={[styles.description, { color: colors.textSecondary }]}
+                  numberOfLines={2}
+                >
+                  {item.description}
+                </Text>
+              )}
+              <View style={styles.itemBottom}>
+                <Text style={[styles.meta, { color: colors.textMuted }]}>
+                  {item.createdBy?.name} · {formatDate(item.createdAt)}
+                </Text>
+                {item.assignee && (
+                  <Text style={[styles.assignee, { color: primary }]}>
+                    담당: {item.assignee.name}
                   </Text>
                 )}
-                <View style={styles.itemBottom}>
-                  <Text style={[styles.meta, { color: colors.textMuted }]}>
-                    {item.createdBy?.name} · {formatDate(item.createdAt)}
-                  </Text>
-                  {item.assignee && (
-                    <Text style={[styles.assignee, { color: primary }]}>
-                      담당: {item.assignee.name}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    paddingTop: 56,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "bold" },
   headerCount: { fontSize: 14 },
   list: { padding: 16 },
   item: { borderRadius: 8, padding: 16, marginBottom: 8, borderWidth: 1 },
@@ -348,11 +325,5 @@ const styles = StyleSheet.create({
   },
   meta: { fontSize: 12 },
   assignee: { fontSize: 12, fontWeight: "600" },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 400,
-  },
-  emptyText: { fontSize: 16 },
+  emptyContainer: { flexGrow: 1, padding: 16 },
 });

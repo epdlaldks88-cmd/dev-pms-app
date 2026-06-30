@@ -12,26 +12,22 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../theme/ThemeContext";
+import { formatDate } from "../utils/date";
+import Header from "../components/Header";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { userStorage } from "../lib/storage";
+import { getAllUsers } from "../api/users";
+import { RefreshControl } from "react-native";
+import { ErrorView } from "../components/ErrorView";
 import {
   getTaskDetail,
   updateTaskStatus,
   createComment,
   updateTask,
+  deleteComment,
+  deleteTask,
 } from "../api/tasks";
-import { useTheme } from "../theme/ThemeContext";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
-import Header from "../components/Header";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { deleteComment } from "../api/tasks";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { deleteTask } from "../api/tasks";
-import { getAllUsers } from "../api/users";
-import { RefreshControl } from "react-native";
 
 interface Task {
   id: string;
@@ -87,13 +83,16 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   const [users, setUsers] = useState<any[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("userId").then(setMyId);
+    userStorage.getUserId().then(setMyId);
   }, []);
 
-  const fetchTask = async () => {
+  const fetchTask = async (showLoading: boolean = true) => {
     try {
+      setError(false);
+      if (showLoading) setLoading(true);
       const data = await getTaskDetail(taskId);
       setTask(data);
       setComments(data.comments || []);
@@ -103,10 +102,10 @@ export default function TaskDetailScreen({ route, navigation }: any) {
         startDate: data.startDate ? data.startDate.split("T")[0] : "",
         dueDate: data.dueDate ? data.dueDate.split("T")[0] : "",
       });
-      // 현재 담당자 ID 목록 초기화
       setSelectedAssignees(data.assignees?.map((a: any) => a.user.id) || []);
-    } catch (error) {
-      console.log("태스크 조회 실패:", error);
+    } catch (e) {
+      if (__DEV__) console.log("[TaskDetail] fetch failed");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -126,7 +125,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     try {
       await updateTaskStatus(taskId, status);
       setShowStatusPicker(false);
-      await fetchTask();
+      await fetchTask(false);
     } catch (error) {
       Alert.alert("오류", "상태 변경에 실패했습니다");
     }
@@ -138,7 +137,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
     try {
       await createComment(taskId, comment.trim());
       setComment("");
-      await fetchTask();
+      await fetchTask(false);
     } catch (error) {
       Alert.alert("오류", "댓글 작성에 실패했습니다");
     } finally {
@@ -156,7 +155,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
         assigneeIds: selectedAssignees,
       });
       setEditing(false);
-      await fetchTask();
+      await fetchTask(false);
     } catch (error) {
       Alert.alert("오류", "수정에 실패했습니다");
     }
@@ -171,7 +170,7 @@ export default function TaskDetailScreen({ route, navigation }: any) {
         onPress: async () => {
           try {
             await deleteComment(taskId, commentId);
-            await fetchTask();
+            await fetchTask(false);
           } catch (error) {
             Alert.alert("오류", "댓글 삭제에 실패했습니다");
           }
@@ -237,27 +236,46 @@ export default function TaskDetailScreen({ route, navigation }: any) {
   // 새로고침
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchTask();
+    await fetchTask(false);
     setRefreshing(false);
   };
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="태스크 상세" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="태스크 상세" onBack={() => navigation.goBack()} />
+        <ErrorView onRetry={() => fetchTask()} />
       </View>
     );
   }
 
   if (!task) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>태스크를 찾을 수 없습니다</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="태스크 상세" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <Text style={{ color: colors.text }}>태스크를 찾을 수 없습니다</Text>
+        </View>
       </View>
     );
   }
 
   const currentStatus = getCurrentStatus();
+
+  const canEdit = (task?.assignees as any)?.some(
+    (a: any) => a.user.id === myId,
+  );
 
   return (
     <KeyboardAvoidingView
@@ -270,13 +288,15 @@ export default function TaskDetailScreen({ route, navigation }: any) {
           title="태스크 상세"
           onBack={() => navigation.goBack()}
           rightElement={
-            <TouchableOpacity
-              onPress={editing ? handleSave : () => setEditing(true)}
-            >
-              <Text style={{ color: primary, fontWeight: "600" }}>
-                {editing ? "저장" : "편집"}
-              </Text>
-            </TouchableOpacity>
+            canEdit ? (
+              <TouchableOpacity
+                onPress={editing ? handleSave : () => setEditing(true)}
+              >
+                <Text style={{ color: primary, fontWeight: "600" }}>
+                  {editing ? "저장" : "편집"}
+                </Text>
+              </TouchableOpacity>
+            ) : undefined
           }
         />
 
@@ -875,13 +895,6 @@ export default function TaskDetailScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: { fontSize: 16, width: 60 },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    flex: 1,
-    textAlign: "center",
-  },
   content: { flex: 1 },
   section: {
     padding: 16,
@@ -967,7 +980,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-    borderBottomWidth: 1,
   },
   subTaskDot: {
     width: 10,
@@ -977,22 +989,6 @@ const styles = StyleSheet.create({
   },
   subTaskTitle: { flex: 1, fontSize: 14 },
   subTaskStatus: { fontSize: 18 },
-  editTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-  },
-  editDescription: {
-    fontSize: 14,
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
   datePicker: {
     borderWidth: 1,
     borderRadius: 8,

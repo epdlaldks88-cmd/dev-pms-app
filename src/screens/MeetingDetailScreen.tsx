@@ -8,12 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
-import {
-  formatDate,
-  formatDateLabel,
-  formatTime,
-  formatRelative,
-} from "../utils/date";
+import { formatDate } from "../utils/date";
 import Header from "../components/Header";
 import { TextInput, Alert } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -22,8 +17,8 @@ import {
   updateMeeting,
   deleteMeeting,
 } from "../api/meetings";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { RefreshControl } from "react-native";
+import { userStorage } from "../lib/storage";
 
 interface Meeting {
   id: string;
@@ -58,6 +53,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   const [meetingDate, setMeetingDate] = useState("");
   const [myId, setMyId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleSave = async () => {
     if (!editForm.title.trim()) {
@@ -76,7 +72,7 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
         attendees: editForm.attendees || undefined,
       });
       setEditing(false);
-      await fetchMeeting();
+      await fetchMeeting(false);
     } catch (error) {
       Alert.alert("오류", "수정에 실패했습니다");
     } finally {
@@ -102,8 +98,10 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
     ]);
   };
 
-  const fetchMeeting = async () => {
+  const fetchMeeting = async (showLoading: boolean = true) => {
     try {
+      setError(false);
+      if (showLoading) setLoading(true);
       const data = await getMeetingDetail(meetingId);
       setMeeting(data);
       setMeetingDate(data.meetingDate ? data.meetingDate.split("T")[0] : "");
@@ -118,11 +116,9 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
           data.participants?.map((p: any) => p.user.name).join(", ") ||
           "",
       });
-
-      console.log("attendees:", data.attendees);
-      console.log("participants:", data.participants);
     } catch (error) {
-      console.log("회의 조회 실패:", error);
+      if (__DEV__) console.log("[MeetingDetailScreen] fetch failed");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -133,28 +129,42 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
   }, []);
 
   useEffect(() => {
-    AsyncStorage.getItem("userId").then(setMyId);
+    userStorage.getUserId().then(setMyId);
   }, []);
 
   // 새로고침
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchMeeting();
+    await fetchMeeting(false);
     setRefreshing(false);
   };
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="회의 상세" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="회의 상세" onBack={() => navigation.goBack()} />
       </View>
     );
   }
 
   if (!meeting) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>회의를 찾을 수 없습니다</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Header title="회의 상세" onBack={() => navigation.goBack()} />
+        <View style={styles.center}>
+          <Text style={{ color: colors.text }}>회의를 찾을 수 없습니다</Text>
+        </View>
       </View>
     );
   }
@@ -402,13 +412,6 @@ export default function MeetingDetailScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: { fontSize: 16, width: 60 },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    flex: 1,
-    textAlign: "center",
-  },
   content: { flex: 1 },
   section: { padding: 16, marginBottom: 8, borderWidth: 1 },
   projectTag: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
@@ -419,20 +422,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 14, marginBottom: 6 },
   location: { fontSize: 14 },
   sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 12 },
-  participantsRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  participant: { alignItems: "center" },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  avatarText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  participantName: { fontSize: 12 },
   content2: { fontSize: 14, lineHeight: 22 },
-  createdBy: { fontSize: 13 },
   editInput: {
     borderWidth: 1,
     borderRadius: 8,
