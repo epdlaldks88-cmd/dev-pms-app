@@ -25,6 +25,9 @@ export const setOnAuthFailure = (cb: () => void | Promise<void>) => {
 // === Request: 토큰 자동 주입 ===
 apiClient.interceptors.request.use(async (config) => {
   const token = await tokenStorage.getAccessToken();
+  if (__DEV__ && !token) {
+    console.log("[request] no token for", config.url);
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -82,6 +85,10 @@ const forceLogout = async () => {
 apiClient.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
+    // ⭐ 디버그 로그 추가
+    if (__DEV__ && error.response?.status === 401) {
+      console.log("[401]", error.config?.method, error.config?.url);
+    }
     const originalRequest = error.config as
       | (AxiosRequestConfig & { _retry?: boolean })
       | undefined;
