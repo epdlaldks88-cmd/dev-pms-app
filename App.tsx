@@ -34,36 +34,56 @@ import {
 import { setNavigationRef } from "./src/api/client";
 import Toast from "react-native-toast-message";
 import { useGlobalSocket } from "./src/hooks/useSocket";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import CreateTaskScreen from "./src/screens/CreateTaskScreen";
 import CreateMeetingScreen from "./src/screens/CreateMeetingScreen";
 import CreateIssueScreen from "./src/screens/CreateIssueScreen";
 import { BadgeProvider } from "./src/hooks/useBadge";
-import { migrateTokensIfNeeded } from "./src/lib/storage";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import {
   initSocketAppStateListener,
   cleanupSocketAppStateListener,
 } from "./src/hooks/useSocket";
+import { usePushNotification } from "./src/hooks/usePushNotification";
+import { userStorage } from "./src/lib/storage";
+import { tokenStorage } from "./src/lib/storage";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const navigationContainerRef = createNavigationContainerRef();
 
 function TabNavigator() {
+  console.log("[TabNavigator] MOUNTED");
   const { primary, colors } = useTheme();
   const { notificationCount, messageCount } = useBadge();
   const [myId, setMyId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("userId").then(setMyId);
-  }, []);
-
-  useEffect(() => {
-    migrateTokensIfNeeded();
+    (async () => {
+      const token = await tokenStorage.getAccessToken();
+      if (!token) {
+        // 토큰 없으면 무조건 Login으로
+        if (navigationContainerRef.isReady()) {
+          navigationContainerRef.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+          });
+        }
+        return;
+      }
+      const id = await userStorage.getUserId();
+      setMyId(id);
+      setAuthChecked(true);
+    })();
   }, []);
 
   useGlobalSocket(myId);
+  usePushNotification();
+
+  // 토큰 체크 끝나기 전엔 빈 화면
+  if (!authChecked) {
+    return null;
+  }
 
   return (
     <Tab.Navigator
@@ -146,6 +166,12 @@ function AppNavigator() {
     <NavigationContainer
       ref={navigationContainerRef}
       onReady={() => setNavigationRef(navigationContainerRef)}
+      onStateChange={(state) => {
+        console.log(
+          "[Nav] state:",
+          state?.routes?.map((r) => r.name).join(" > "),
+        );
+      }}
     >
       <OfflineBanner />
       <Stack.Navigator

@@ -1,40 +1,62 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../theme/ThemeContext";
 import { apiClient } from "../api/client";
+import {
+  tokenStorage,
+  userStorage,
+  migrateTokensIfNeeded,
+} from "../lib/storage";
 
 export default function SplashScreen({ navigation }: any) {
+  console.log("[Splash] MOUNTED"); // ⭐ 추가
   const { primary, colors } = useTheme();
 
   useEffect(() => {
+    let mounted = true;
+    let navigated = false;
+
+    const safeNavigate = (route: string) => {
+      if (navigated || !mounted) return;
+      navigated = true;
+      navigation.replace(route);
+    };
+
     const checkAuth = async () => {
       try {
-        const token = await AsyncStorage.getItem("accessToken");
+        await migrateTokensIfNeeded();
+        if (!mounted) return;
+
+        const token = await tokenStorage.getAccessToken();
+        if (__DEV__) console.log("[splash] token:", token ? "EXISTS" : "NULL");
+        if (!mounted) return;
+
         if (!token) {
-          navigation.replace("Login");
+          if (__DEV__) console.log("[splash] going to Login");
+          safeNavigate("Login");
           return;
         }
 
-        const userId = await AsyncStorage.getItem("userId");
+        const userId = await userStorage.getUserId();
         if (userId) {
           await apiClient.get(`/users/${userId}`);
         }
+        if (!mounted) return;
 
-        navigation.replace("MainTab");
+        safeNavigate("MainTab");
       } catch (error) {
-        await AsyncStorage.multiRemove([
-          "accessToken",
-          "refreshToken",
-          "userId",
-        ]);
-        navigation.replace("Login");
+        if (!mounted) return;
+        await tokenStorage.clearTokens();
+        await userStorage.clearUserId();
+        safeNavigate("Login");
       }
     };
 
-    // 최소 1.5초 스플래시 보여주기
     const timer = setTimeout(checkAuth, 1500);
-    return () => clearTimeout(timer);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -91,13 +113,11 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 22,
     fontWeight: "600",
-    color: "#fff",
     letterSpacing: 1,
   },
   appSub: {
     fontSize: 22,
     fontWeight: "600",
-    color: "rgba(255,255,255,0.8)",
     letterSpacing: 1,
     marginTop: 2,
   },
@@ -107,7 +127,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    color: "rgba(255,255,255,0.7)",
     fontSize: 13,
   },
 });
