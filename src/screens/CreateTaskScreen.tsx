@@ -17,6 +17,7 @@ import { KeyboardAvoidingView, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { userStorage } from "../lib/storage";
 import { ErrorView } from "../components/ErrorView";
+import { getAllUsers } from "../api/users";
 
 const PRIORITIES = [
   { key: "LOW", label: "낮음", color: "#94a3b8" },
@@ -42,15 +43,21 @@ export default function CreateTaskScreen({ navigation }: any) {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDuePicker, setShowDuePicker] = useState(false);
   const [error, setError] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
 
   // useEffect 2개 → 1개로 통합
   const init = async () => {
     setLoading(true);
     setError(false);
     try {
-      const data = await getProjects();
-      setProjects(data);
-      if (data.length > 0) setProjectId(data[0].id);
+      const [projectsData, usersData] = await Promise.all([
+        getProjects(),
+        getAllUsers(),
+      ]);
+      setProjects(projectsData);
+      setUsers(usersData);
+      if (projectsData.length > 0) setProjectId(projectsData[0].id);
     } catch (e) {
       if (__DEV__) console.log("[CreateTask] init failed");
       setError(true);
@@ -62,6 +69,21 @@ export default function CreateTaskScreen({ navigation }: any) {
   useEffect(() => {
     init();
   }, []);
+
+  useEffect(() => {
+    userStorage.getUserId().then((id) => {
+      setMyId(id);
+      if (id) setSelectedAssignees([id]); // ⭐ 기본값으로 본인 선택
+    });
+  }, []);
+
+  const toggleAssignee = (userId: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
+    );
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -81,12 +103,12 @@ export default function CreateTaskScreen({ navigation }: any) {
         startDate: startDate.trim() || undefined,
         dueDate: dueDate.trim() ? dueDate.trim() : undefined,
         stepId: stepId || undefined,
-        assigneeIds: myId ? [myId] : [],
+        assigneeIds: selectedAssignees, // ⭐ myId 단일 → selectedAssignees 배열
       });
       Alert.alert("완료", "태스크가 생성됐습니다", [
         { text: "확인", onPress: () => navigation.goBack() },
       ]);
-    } catch (error) {
+    } catch (e) {
       if (__DEV__) console.log("[CreateTask] save failed");
       Alert.alert("오류", "태스크 생성에 실패했습니다");
     } finally {
@@ -304,6 +326,49 @@ export default function CreateTaskScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+
+          {/* 담당자 */}
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
+              담당자
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.chipRow}>
+                {users.map((u) => {
+                  const isSelected = selectedAssignees.includes(u.id);
+                  return (
+                    <TouchableOpacity
+                      key={u.id}
+                      style={[
+                        styles.chip,
+                        { borderColor: colors.border },
+                        isSelected && {
+                          backgroundColor: primary,
+                          borderColor: primary,
+                        },
+                      ]}
+                      onPress={() => toggleAssignee(u.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          { color: isSelected ? "#fff" : colors.text },
+                        ]}
+                      >
+                        {u.name}
+                        {u.id === myId ? " (나)" : ""}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
           </View>
 
           {/* 시작일 */}
