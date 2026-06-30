@@ -1,8 +1,8 @@
 import { apiClient } from "./client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { userStorage } from "../lib/storage";
 
 export const getMyProfile = async () => {
-  const userId = await AsyncStorage.getItem("userId");
+  const userId = await userStorage.getUserId();
   if (!userId) throw new Error("userId 없음");
   const response = await apiClient.get(`/users/${userId}`);
   return response.data;
