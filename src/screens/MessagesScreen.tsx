@@ -77,7 +77,7 @@ export default function MessagesScreen({ navigation, showHeader = true }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {showHeader && <Header title="쪽지" />} {/* ⭐ 추가 */}
+      {showHeader && <Header title="쪽지" />}
       <View
         style={[
           styles.actionBar,

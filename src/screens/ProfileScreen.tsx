@@ -57,7 +57,7 @@ export default function ProfileScreen({ navigation }: any) {
         phone: data.phone || "",
       });
     } catch (error) {
-      console.log("프로필 조회 실패:", error);
+      if (__DEV__) console.log("[ProfileScreen] fetch failed");
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,11 @@ export default function ProfileScreen({ navigation }: any) {
         text: "로그아웃",
         style: "destructive",
         onPress: async () => {
-          await logout();
+          try {
+            await logout(); // ⭐ 인자 없음 (내부에서 FCM 토큰 처리)
+          } catch {
+            // 무시 — 로컬 정리는 logout 안에서 이미 함
+          }
           navigation.replace("Login");
         },
       },
