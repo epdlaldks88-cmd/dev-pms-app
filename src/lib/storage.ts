@@ -29,22 +29,33 @@ export const userStorage = {
 };
 
 // === 기존 사용자 마이그레이션 (앱 시작 시 1회 호출) ===
-// AsyncStorage에 저장돼 있던 토큰을 SecureStore로 이전하고 원본 삭제
 export const migrateTokensIfNeeded = async (): Promise<void> => {
   try {
+    if (__DEV__) console.log("[migrate] start");
     const [oldAccess, oldRefresh] = await Promise.all([
       AsyncStorage.getItem(ACCESS_TOKEN_KEY),
       AsyncStorage.getItem(REFRESH_TOKEN_KEY),
     ]);
 
+    if (__DEV__)
+      console.log(
+        "[migrate] oldAccess:",
+        !!oldAccess,
+        "oldRefresh:",
+        !!oldRefresh,
+      );
+
     if (oldAccess) {
       await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, oldAccess);
       await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
+      if (__DEV__) console.log("[migrate] access migrated");
     }
     if (oldRefresh) {
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, oldRefresh);
       await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+      if (__DEV__) console.log("[migrate] refresh migrated");
     }
+    if (__DEV__) console.log("[migrate] done");
   } catch (e) {
     if (__DEV__) console.log("[migrate] failed", e);
   }

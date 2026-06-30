@@ -247,7 +247,7 @@ export default function RoomsScreen({ navigation, showHeader = true }: any) {
                 )}
               </View>
               <Text style={[styles.memberCount, { color: colors.textMuted }]}>
-                멤버 {item.members?.length || 0}명
+                {`멤버 ${item.members?.length || 0}명`}
               </Text>
               {item.lastMessage && (
                 <Text
